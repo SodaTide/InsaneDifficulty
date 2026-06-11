@@ -4,7 +4,7 @@
 
 **支持双平台部署：Fabric客户端模组 + Paper服务端插件**
 
-**基于 [Insane Difficulty](https://www.curseforge.com/minecraft/texture-packs/insane-difficulty) 数据包改编**
+**基于 Insane Difficulty 数据包改编**
 
 ## 🎮 功能特性
 
