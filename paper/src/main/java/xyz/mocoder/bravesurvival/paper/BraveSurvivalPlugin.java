@@ -39,6 +39,8 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
     private VillagerTradeManager villagerTradeManager;
     private EntityBehaviorManager entityBehaviorManager;
     private AdvancedFeatureManager advancedFeatureManager;
+    private MissingFeaturesManager1 missingFeaturesManager1;
+    private MissingFeaturesManager2 missingFeaturesManager2;
     
     @Override
     public void onEnable() {
@@ -66,6 +68,15 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
         // 注册高级功能管理器
         advancedFeatureManager = new AdvancedFeatureManager(this);
         advancedFeatureManager.initialize();
+        
+        // 注册缺失功能管理器1
+        missingFeaturesManager1 = new MissingFeaturesManager1(this);
+        missingFeaturesManager1.initialize();
+        
+        // 注册缺失功能管理器2
+        missingFeaturesManager2 = new MissingFeaturesManager2(this);
+        missingFeaturesManager2.initialize();
+        missingFeaturesManager2.registerHayBlockRecipe();
         
         // 注册命令
         getCommand("bravesurvival").setExecutor((sender, command, label, args) -> {
