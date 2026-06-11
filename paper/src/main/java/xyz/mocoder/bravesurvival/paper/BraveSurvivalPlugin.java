@@ -545,4 +545,23 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
             }.runTaskLater(this, 100L); // 5秒后
         }
     }
+    
+    /**
+     * 监听玩家饥饿事件
+     */
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onFoodLevelChange(FoodLevelChangeEvent event) {
+        if (event.isCancelled()) return;
+        
+        if (event.getEntity() instanceof Player player) {
+            // 饥饿效果
+            if (ConfigManager.getPlayerConfig().has("hunger_effects") && 
+                ConfigManager.getPlayerConfig().get("hunger_effects").getAsBoolean()) {
+                if (event.getFoodLevel() < 6) {
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 40, 0, false, false));
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 40, 0, false, false));
+                }
+            }
+        }
+    }
 }

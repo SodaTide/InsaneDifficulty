@@ -44,3 +44,9 @@ Thumbs.db
 *.temp
 *.bak
 *.swp
+
+# RAG and development tools
+rag_index.py
+api_query.py
+test_api.py
+docs_index.json
