@@ -1,29 +1,46 @@
-# gradle
-
+# Gradle
 .gradle/
-build/
+**/build/
 out/
 classes/
+*.gradle.kts
+!build.gradle.kts
+!settings.gradle.kts
 
-# eclipse
-
+# Eclipse
 *.launch
+.settings/
+.classpath
+.project
 
-# idea
-
+# IntelliJ IDEA
 .idea/
 *.iml
 *.ipr
 *.iws
 
-# vscode
-
-.settings/
+# VS Code
 .vscode/
 bin/
-.classpath
-.project
 
-# fabric
-
+# Fabric
 run/
+*.mixins.json.bak
+
+# Build outputs
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp

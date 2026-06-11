@@ -70,10 +70,76 @@ BraveSurvival/
 
 ### 技术细节
 - **Java版本**：Java 21
-- **构建工具**：Gradle Kotlin DSL
+- **构建工具**：Gradle 8.14 + Kotlin DSL
 - **Fabric Loader**：0.16.10+
 - **Fabric API**：0.112.2+
 - **Paper API**：1.21.4-R0.1-SNAPSHOT
+
+## 🚀 构建说明
+
+### 环境要求
+
+- **Java 21**：必须安装JDK 21或更高版本
+- **网络**：首次构建需要下载Minecraft资源（约500MB）
+
+### 构建命令
+
+```bash
+# 设置JAVA_HOME（如果系统有多个Java版本）
+# Windows PowerShell
+$env:JAVA_HOME = "F:\Program Files\Zulu\zulu-21"
+
+# Windows CMD
+set JAVA_HOME=F:\Program Files\Zulu\zulu-21
+
+# Linux/Mac
+export JAVA_HOME=/path/to/java21
+
+# 构建所有模块
+./gradlew build
+
+# 只构建Core模块
+./gradlew :core:build
+
+# 只构建Fabric模组
+./gradlew :fabric:build
+
+# 只构建Paper插件
+./gradlew :paper:build
+
+# 清理并重新构建
+./gradlew clean build
+```
+
+### 构建产物位置
+
+```
+BraveSurvival/
+├── core/build/libs/
+│   └── BraveSurvival-Core-2.0.0.jar          # 核心模块
+├── fabric/build/libs/
+│   ├── BraveSurvival-2.0.0.jar                # Fabric模组（已重映射）
+│   └── BraveSurvival-2.0.0-sources.jar        # 源代码
+└── paper/build/libs/
+    └── BraveSurvival-Paper-2.0.0.jar          # Paper插件
+```
+
+### 首次构建注意事项
+
+1. **下载Minecraft资源**：首次构建Fabric模块时，Gradle会下载Minecraft资源文件，这可能需要几分钟
+2. **网络问题**：如果下载失败，请检查网络连接或配置代理
+3. **Java版本**：确保使用Java 21，其他版本可能导致编译错误
+
+### 常见问题
+
+#### Q: 构建失败，提示"Unsupported class file major version"
+A: Java版本不匹配，请使用Java 21
+
+#### Q: 构建失败，提示找不到符号
+A: 可能是API变化，请检查错误信息并更新代码
+
+#### Q: Fabric构建很慢
+A: 首次构建需要下载Minecraft资源，请耐心等待
 
 ## 📦 安装使用
 
@@ -81,7 +147,7 @@ BraveSurvival/
 
 1. 安装 [Fabric Loader](https://fabricmc.net/use) (>=0.16.10)
 2. 下载 [Fabric API](https://www.curseforge.com/minecraft/mc-mods/fabric-api) (>=0.112.2)
-3. 下载本模组的 `BraveSurvival-Fabric-2.0.0.jar`
+3. 下载本模组的 `BraveSurvival-2.0.0.jar`
 4. 将模组和API放入 `.minecraft/mods` 文件夹
 5. 启动游戏，选择Fabric配置文件
 
@@ -128,28 +194,6 @@ BraveSurvival/
     "skeleton_horse_chance": 0.01
   }
 }
-```
-
-## 🚀 构建项目
-
-### 构建所有模块
-```bash
-./gradlew build
-```
-
-### 只构建Fabric模组
-```bash
-./gradlew :fabric:build
-```
-
-### 只构建Paper插件
-```bash
-./gradlew :paper:build
-```
-
-### 构建核心模块
-```bash
-./gradlew :core:build
 ```
 
 ## 📝 命令
