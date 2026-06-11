@@ -321,4 +321,280 @@ public class ConfigManager {
         return worldConfig.has("spawn_multiplier") ? 
                worldConfig.get("spawn_multiplier").getAsInt() : 8;
     }
+    
+    /**
+     * 获取战斗配置
+     */
+    public static JsonObject getCombatConfig() {
+        if (config != null && config.has("combat")) {
+            return config.getAsJsonObject("combat");
+        }
+        return new JsonObject();
+    }
+    
+    /**
+     * 获取结构配置
+     */
+    public static JsonObject getStructuresConfig() {
+        if (config != null && config.has("structures")) {
+            return config.getAsJsonObject("structures");
+        }
+        return new JsonObject();
+    }
+    
+    /**
+     * 检查是否启用通用愤怒
+     */
+    public static boolean isUniversalAnger() {
+        JsonObject worldConfig = getWorldConfig();
+        return worldConfig.has("universal_anger") && worldConfig.get("universal_anger").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否禁用自然再生
+     */
+    public static boolean isNaturalRegenerationDisabled() {
+        JsonObject playerConfig = getPlayerConfig();
+        return playerConfig.has("no_natural_regeneration") && playerConfig.get("no_natural_regeneration").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否启用挖掘疲劳（不拿工具）
+     */
+    public static boolean isMiningFatigueWithoutTools() {
+        JsonObject playerConfig = getPlayerConfig();
+        return playerConfig.has("mining_fatigue_without_tools") && playerConfig.get("mining_fatigue_without_tools").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否启用重甲减速
+     */
+    public static boolean isHeavyArmorSlowness() {
+        JsonObject playerConfig = getPlayerConfig();
+        return playerConfig.has("heavy_armor_slowness") && playerConfig.get("heavy_armor_slowness").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否启用受伤掉落物品
+     */
+    public static boolean isDropItemsOnHit() {
+        JsonObject playerConfig = getPlayerConfig();
+        return playerConfig.has("drop_items_on_hit") && playerConfig.get("drop_items_on_hit").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否启用移动掉落物品
+     */
+    public static boolean isDropItemsOnMove() {
+        JsonObject playerConfig = getPlayerConfig();
+        return playerConfig.has("drop_items_on_move") && playerConfig.get("drop_items_on_move").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否启用岩浆伤害
+     */
+    public static boolean isLavaHeatDamage() {
+        JsonObject worldConfig = getWorldConfig();
+        return worldConfig.has("lava_heat_damage") && worldConfig.get("lava_heat_damage").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否启用仙人掌中毒
+     */
+    public static boolean isCactusPoison() {
+        JsonObject worldConfig = getWorldConfig();
+        return worldConfig.has("cactus_poison") && worldConfig.get("cactus_poison").getAsBoolean();
+    }
+    
+    /**
+     * 检查门是否在水中损坏
+     */
+    public static boolean isDoorsBreakInWater() {
+        JsonObject worldConfig = getWorldConfig();
+        return worldConfig.has("doors_break_in_water") && worldConfig.get("doors_break_in_water").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否启用溺水效果
+     */
+    public static boolean isDrowningEffects() {
+        JsonObject worldConfig = getWorldConfig();
+        return worldConfig.has("drowning_effects") && worldConfig.get("drowning_effects").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否启用睡觉跳过部分夜晚
+     */
+    public static boolean isSleepSkipsPartOfNight() {
+        JsonObject worldConfig = getWorldConfig();
+        return worldConfig.has("sleep_skips_third_of_night") && worldConfig.get("sleep_skips_third_of_night").getAsBoolean();
+    }
+    
+    /**
+     * 检查睡醒是否遇到幻翼
+     */
+    public static boolean isWakeUpToPhantoms() {
+        JsonObject worldConfig = getWorldConfig();
+        return worldConfig.has("wake_up_to_phantoms") && worldConfig.get("wake_up_to_phantoms").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否启用随机雷暴
+     */
+    public static boolean isRandomLightningStorms() {
+        JsonObject worldConfig = getWorldConfig();
+        return worldConfig.has("random_lightning_storms") && worldConfig.get("random_lightning_storms").getAsBoolean();
+    }
+    
+    /**
+     * 检查传送门是否可能损坏
+     */
+    public static boolean isPortalBreakChance() {
+        JsonObject worldConfig = getWorldConfig();
+        return worldConfig.has("portal_break_chance") && worldConfig.get("portal_break_chance").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否启用黑暗中随机声音
+     */
+    public static boolean isRandomMobNoisesInDark() {
+        JsonObject worldConfig = getWorldConfig();
+        return worldConfig.has("random_mob_noises_in_dark") && worldConfig.get("random_mob_noises_in_dark").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否启用箭矢误射
+     */
+    public static boolean isArrowsMisfire() {
+        JsonObject combatConfig = getCombatConfig();
+        return combatConfig.has("arrows_misfire_chance") && combatConfig.get("arrows_misfire_chance").getAsDouble() > 0;
+    }
+    
+    /**
+     * 获取箭矢误射概率
+     */
+    public static double getArrowsMisfireChance() {
+        JsonObject combatConfig = getCombatConfig();
+        return combatConfig.has("arrows_misfire_chance") ? combatConfig.get("arrows_misfire_chance").getAsDouble() : 0.1;
+    }
+    
+    /**
+     * 检查末影珍珠是否总是生成末影螨
+     */
+    public static boolean isEnderPearlsAlwaysSpawnEndermites() {
+        JsonObject combatConfig = getCombatConfig();
+        return combatConfig.has("ender_pearls_always_spawn_endermites") && combatConfig.get("ender_pearls_always_spawn_endermites").getAsBoolean();
+    }
+    
+    /**
+     * 检查末地水晶是否反射弹射物
+     */
+    public static boolean isEndCrystalsReflectProjectiles() {
+        JsonObject combatConfig = getCombatConfig();
+        return combatConfig.has("ender_crystals_reflect_projectiles") && combatConfig.get("ender_crystals_reflect_projectiles").getAsBoolean();
+    }
+    
+    /**
+     * 检查图腾是否削弱
+     */
+    public static boolean isTotemNerfed() {
+        JsonObject combatConfig = getCombatConfig();
+        return combatConfig.has("totem_nerfed_drop") && combatConfig.get("totem_nerfed_drop").getAsBoolean();
+    }
+    
+    /**
+     * 检查进入村庄是否获得不祥之兆
+     */
+    public static boolean isBadOmenOnVillageEnter() {
+        JsonObject combatConfig = getCombatConfig();
+        return combatConfig.has("bad_omen_on_village_enter") && combatConfig.get("bad_omen_on_village_enter").getAsBoolean();
+    }
+    
+    /**
+     * 检查盾牌耐久度倍数
+     */
+    public static double getShieldDurabilityMultiplier() {
+        JsonObject itemsConfig = getItemsConfig();
+        return itemsConfig.has("shield_durability_multiplier") ? itemsConfig.get("shield_durability_multiplier").getAsDouble() : 3.0;
+    }
+    
+    /**
+     * 检查烈焰棒是否烧伤
+     */
+    public static boolean isBlazeRodBurns() {
+        JsonObject itemsConfig = getItemsConfig();
+        return itemsConfig.has("blaze_rod_burns") && itemsConfig.get("blaze_rod_burns").getAsBoolean();
+    }
+    
+    /**
+     * 检查岩浆桶是否烧伤
+     */
+    public static boolean isLavaBucketBurns() {
+        JsonObject itemsConfig = getItemsConfig();
+        return itemsConfig.has("lava_bucket_burns") && itemsConfig.get("lava_bucket_burns").getAsBoolean();
+    }
+    
+    /**
+     * 检查肉类变质概率
+     */
+    public static double getMeatSpoilChance() {
+        JsonObject itemsConfig = getItemsConfig();
+        return itemsConfig.has("meat_spoil_chance") ? itemsConfig.get("meat_spoil_chance").getAsDouble() : 0.0166;
+    }
+    
+    /**
+     * 检查食物中毒概率
+     */
+    public static double getFoodPoisoningChance() {
+        JsonObject itemsConfig = getItemsConfig();
+        return itemsConfig.has("food_poisoning_chance") ? itemsConfig.get("food_poisoning_chance").getAsDouble() : 0.0166;
+    }
+    
+    /**
+     * 检查石头掉落概率（用低品质镐）
+     */
+    public static double getStoneDropChanceWithLowPickaxe() {
+        JsonObject blocksConfig = getBlocksConfig();
+        return blocksConfig.has("stone_drop_chance_with_low_pickaxe") ? blocksConfig.get("stone_drop_chance_with_low_pickaxe").getAsDouble() : 0.5;
+    }
+    
+    /**
+     * 检查矿石掉落概率
+     */
+    public static double getOreDropChance() {
+        JsonObject blocksConfig = getBlocksConfig();
+        return blocksConfig.has("ore_drop_chance") ? blocksConfig.get("ore_drop_chance").getAsDouble() : 0.5;
+    }
+    
+    /**
+     * 检查TNT破坏爆炸概率
+     */
+    public static double getTntBreakExplodesChance() {
+        JsonObject blocksConfig = getBlocksConfig();
+        return blocksConfig.has("tnt_break_explodes_chance") ? blocksConfig.get("tnt_break_explodes_chance").getAsDouble() : 0.1;
+    }
+    
+    /**
+     * 检查是否启用沙漠神殿卫道士
+     */
+    public static boolean isDesertTempleHusks() {
+        JsonObject structuresConfig = getStructuresConfig();
+        return structuresConfig.has("desert_temple_husks") && structuresConfig.get("desert_temple_husks").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否启用废弃传送门幻术师
+     */
+    public static boolean isRuinedPortalIllusioners() {
+        JsonObject structuresConfig = getStructuresConfig();
+        return structuresConfig.has("ruined_portal_illusioners") && structuresConfig.get("ruined_portal_illusioners").getAsBoolean();
+    }
+    
+    /**
+     * 检查是否启用沉船溺尸守卫
+     */
+    public static boolean isShipwrecksGuardedByDrowned() {
+        JsonObject structuresConfig = getStructuresConfig();
+        return structuresConfig.has("shipwrecks_guarded_by_drowned") && structuresConfig.get("shipwrecks_guarded_by_drowned").getAsBoolean();
+    }
 }

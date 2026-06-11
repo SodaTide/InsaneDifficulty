@@ -9,6 +9,8 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.entity.*;
+import org.bukkit.GameRule;
+import org.bukkit.Material;
 import org.bukkit.scheduler.BukkitRunnable;
 import xyz.mocoder.bravesurvival.core.config.ConfigManager;
 import xyz.mocoder.bravesurvival.core.logic.mob.MobEnhancer;
@@ -43,6 +45,20 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
             return true;
         });
         
+        // 设置游戏规则
+        if (ConfigManager.isNaturalRegenerationDisabled()) {
+            getServer().getWorlds().forEach(world -> {
+                world.setGameRule(GameRule.NATURAL_REGENERATION, false);
+            });
+        }
+        
+        if (ConfigManager.isUniversalAnger()) {
+            getServer().getWorlds().forEach(world -> {
+                world.setGameRule(GameRule.FORGIVE_DEAD_PLAYERS, false);
+                world.setGameRule(GameRule.UNIVERSAL_ANGER, true);
+            });
+        }
+        
         getLogger().info("BraveSurvival 插件启用成功！");
     }
     
@@ -68,6 +84,8 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
             MobEnhancer.enhanceEnderman(wrapper);
         } else if (entity instanceof Skeleton) {
             MobEnhancer.enhanceSkeleton(wrapper);
+        } else if (entity instanceof Spider) {
+            MobEnhancer.enhanceSpider(wrapper);
         } else if (entity instanceof Piglin) {
             MobEnhancer.enhancePiglin(wrapper);
         } else if (entity instanceof Phantom) {
@@ -76,6 +94,22 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
             MobEnhancer.enhanceGuardian(wrapper);
         } else if (entity instanceof Hoglin) {
             MobEnhancer.enhanceHoglin(wrapper);
+        } else if (entity instanceof Blaze) {
+            MobEnhancer.enhanceBlaze(wrapper);
+        } else if (entity instanceof Ghast) {
+            MobEnhancer.enhanceGhast(wrapper);
+        } else if (entity instanceof Pillager) {
+            MobEnhancer.enhancePillager(wrapper);
+        } else if (entity instanceof Witch) {
+            MobEnhancer.enhanceWitch(wrapper);
+        } else if (entity instanceof Illusioner) {
+            MobEnhancer.enhanceIllusioner(wrapper);
+        } else if (entity instanceof WitherSkeleton) {
+            MobEnhancer.enhanceWitherSkeleton(wrapper);
+        } else if (entity instanceof Silverfish) {
+            MobEnhancer.enhanceSilverfish(wrapper);
+        } else if (entity instanceof Endermite) {
+            MobEnhancer.enhanceEndermite(wrapper);
         } else if (entity instanceof IronGolem) {
             MobEnhancer.handleIronGolemBehavior(wrapper);
         }
@@ -117,6 +151,17 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
                 event.getBlock().getWorld().spawnEntity(
                     event.getBlock().getLocation().add(0.5, 0, 0.5),
                     EntityType.SILVERFISH
+                );
+            }
+        }
+        
+        // 检查TNT破坏是否爆炸
+        if (event.getBlock().getType() == Material.TNT) {
+            if (Math.random() < MobEnhancer.getTntBreakExplodesChance()) {
+                event.getBlock().getWorld().createExplosion(
+                    event.getBlock().getLocation(), 
+                    4.0F, 
+                    true
                 );
             }
         }
