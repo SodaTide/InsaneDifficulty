@@ -141,21 +141,25 @@ public class AdvancedFeatureManager implements Listener {
         if (event.getDamager() instanceof Skeleton skeleton && event.getEntity() instanceof Player player) {
             if (plugin.getConfigManager().getMobConfig("skeleton").has("auto_aim") && 
                 plugin.getConfigManager().getMobConfig("skeleton").get("auto_aim").getAsBoolean()) {
-                // 计算预测位置
-                org.bukkit.Location playerLoc = player.getLocation();
-                org.bukkit.Location skeletonLoc = skeleton.getLocation();
+                // 延迟到下一tick设置朝向，避免在tick期间修改AI
+                final org.bukkit.Location playerLoc = player.getLocation();
+                final org.bukkit.Location skeletonLoc = skeleton.getLocation();
                 
-                // 计算方向
-                double dx = playerLoc.getX() - skeletonLoc.getX();
-                double dy = playerLoc.getY() - skeletonLoc.getY();
-                double dz = playerLoc.getZ() - skeletonLoc.getZ();
-                
-                // 设置骷髅朝向
-                double yaw = Math.toDegrees(Math.atan2(-dx, dz));
-                double pitch = Math.toDegrees(Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)));
-                skeletonLoc.setYaw((float) yaw);
-                skeletonLoc.setPitch((float) pitch);
-                skeleton.teleport(skeletonLoc);
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    try {
+                        double dx = playerLoc.getX() - skeletonLoc.getX();
+                        double dy = playerLoc.getY() - skeletonLoc.getY();
+                        double dz = playerLoc.getZ() - skeletonLoc.getZ();
+                        
+                        double yaw = Math.toDegrees(Math.atan2(-dx, dz));
+                        double pitch = Math.toDegrees(Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)));
+                        skeletonLoc.setYaw((float) yaw);
+                        skeletonLoc.setPitch((float) pitch);
+                        skeleton.teleport(skeletonLoc);
+                    } catch (Exception e) {
+                        // 忽略AI修改错误
+                    }
+                });
             }
         }
         
@@ -163,21 +167,24 @@ public class AdvancedFeatureManager implements Listener {
         if (event.getDamager() instanceof Pillager pillager && event.getEntity() instanceof Player player) {
             if (plugin.getConfigManager().getMobConfig("pillager").has("auto_aim") && 
                 plugin.getConfigManager().getMobConfig("pillager").get("auto_aim").getAsBoolean()) {
-                // 计算预测位置
-                org.bukkit.Location playerLoc = player.getLocation();
-                org.bukkit.Location pillagerLoc = pillager.getLocation();
+                final org.bukkit.Location playerLoc = player.getLocation();
+                final org.bukkit.Location pillagerLoc = pillager.getLocation();
                 
-                // 计算方向
-                double dx = playerLoc.getX() - pillagerLoc.getX();
-                double dy = playerLoc.getY() - pillagerLoc.getY();
-                double dz = playerLoc.getZ() - pillagerLoc.getZ();
-                
-                // 设置掠夺者朝向
-                double yaw = Math.toDegrees(Math.atan2(-dx, dz));
-                double pitch = Math.toDegrees(Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)));
-                pillagerLoc.setYaw((float) yaw);
-                pillagerLoc.setPitch((float) pitch);
-                pillager.teleport(pillagerLoc);
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    try {
+                        double dx = playerLoc.getX() - pillagerLoc.getX();
+                        double dy = playerLoc.getY() - pillagerLoc.getY();
+                        double dz = playerLoc.getZ() - pillagerLoc.getZ();
+                        
+                        double yaw = Math.toDegrees(Math.atan2(-dx, dz));
+                        double pitch = Math.toDegrees(Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)));
+                        pillagerLoc.setYaw((float) yaw);
+                        pillagerLoc.setPitch((float) pitch);
+                        pillager.teleport(pillagerLoc);
+                    } catch (Exception e) {
+                        // 忽略AI修改错误
+                    }
+                });
             }
         }
         
@@ -185,21 +192,24 @@ public class AdvancedFeatureManager implements Listener {
         if (event.getDamager() instanceof Illusioner illusioner && event.getEntity() instanceof Player player) {
             if (plugin.getConfigManager().getMobConfig("illusioner").has("auto_aim") && 
                 plugin.getConfigManager().getMobConfig("illusioner").get("auto_aim").getAsBoolean()) {
-                // 计算预测位置
-                org.bukkit.Location playerLoc = player.getLocation();
-                org.bukkit.Location illusionerLoc = illusioner.getLocation();
+                final org.bukkit.Location playerLoc = player.getLocation();
+                final org.bukkit.Location illusionerLoc = illusioner.getLocation();
                 
-                // 计算方向
-                double dx = playerLoc.getX() - illusionerLoc.getX();
-                double dy = playerLoc.getY() - illusionerLoc.getY();
-                double dz = playerLoc.getZ() - illusionerLoc.getZ();
-                
-                // 设置幻术师朝向
-                double yaw = Math.toDegrees(Math.atan2(-dx, dz));
-                double pitch = Math.toDegrees(Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)));
-                illusionerLoc.setYaw((float) yaw);
-                illusionerLoc.setPitch((float) pitch);
-                illusioner.teleport(illusionerLoc);
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    try {
+                        double dx = playerLoc.getX() - illusionerLoc.getX();
+                        double dy = playerLoc.getY() - illusionerLoc.getY();
+                        double dz = playerLoc.getZ() - illusionerLoc.getZ();
+                        
+                        double yaw = Math.toDegrees(Math.atan2(-dx, dz));
+                        double pitch = Math.toDegrees(Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz)));
+                        illusionerLoc.setYaw((float) yaw);
+                        illusionerLoc.setPitch((float) pitch);
+                        illusioner.teleport(illusionerLoc);
+                    } catch (Exception e) {
+                        // 忽略AI修改错误
+                    }
+                });
             }
         }
     }
@@ -215,11 +225,16 @@ public class AdvancedFeatureManager implements Listener {
         if (event.getDamager() instanceof IronGolem golem && event.getEntity() instanceof Player player) {
             if (plugin.getConfigManager().getMobConfig("iron_golem").has("jump_explosion") && 
                 plugin.getConfigManager().getMobConfig("iron_golem").get("jump_explosion").getAsBoolean()) {
-                // 检查铁傀儡是否在跳跃
-                if (golem.getVelocity().getY() > 0.1) {
-                    // 生成爆炸
-                    golem.getWorld().createExplosion(golem.getLocation(), 4.0F, true);
-                }
+                // 延迟检查，避免在tick期间修改
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    try {
+                        if (golem.getVelocity().getY() > 0.1) {
+                            golem.getWorld().createExplosion(golem.getLocation(), 4.0F, true);
+                        }
+                    } catch (Exception e) {
+                        // 忽略错误
+                    }
+                });
             }
         }
     }

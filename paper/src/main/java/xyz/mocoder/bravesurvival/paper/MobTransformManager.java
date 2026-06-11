@@ -212,9 +212,17 @@ public class MobTransformManager implements Listener {
         // 北极熊敌对 (16格内有玩家)
         if (event.getEntity() instanceof PolarBear polarBear) {
             if (hasPlayerNearby(loc, 16.0)) {
+                // 延迟到下一tick设置目标，避免在tick期间修改AI
                 Player nearest = getNearestPlayer(loc, 16.0);
                 if (nearest != null) {
-                    polarBear.setTarget(nearest);
+                    final Player target = nearest;
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        try {
+                            polarBear.setTarget(target);
+                        } catch (Exception e) {
+                            // 忽略AI修改错误
+                        }
+                    });
                 }
             }
         }
@@ -222,8 +230,15 @@ public class MobTransformManager implements Listener {
         // 僵尸猪灵敌对 (32格内有玩家)
         if (event.getEntity() instanceof PigZombie pigZombie) {
             if (hasPlayerNearby(loc, 32.0)) {
-                pigZombie.setAngry(true);
-                pigZombie.setAnger(Integer.MAX_VALUE);
+                // 延迟到下一tick设置目标，避免在tick期间修改AI
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    try {
+                        pigZombie.setAngry(true);
+                        pigZombie.setAnger(Integer.MAX_VALUE);
+                    } catch (Exception e) {
+                        // 忽略AI修改错误
+                    }
+                });
             }
         }
     }
