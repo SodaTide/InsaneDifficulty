@@ -5,6 +5,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
@@ -18,33 +19,30 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.Random;
+import java.util.UUID;
 
 /**
- * 缺失功能管理器 - 第一批
- * 实现被动生物变形、中立生物敌对、末影龙增强等核心功能
+ * 生物变形与敌对化管理器
+ * 处理被动生物变形、中立生物敌对化、末影龙增强、烈焰人增强等
  */
-public class MissingFeaturesManager1 implements Listener {
+public class MobTransformManager implements Listener {
     
     private final BraveSurvivalPlugin plugin;
     private final Random random = new Random();
     
-    public MissingFeaturesManager1(BraveSurvivalPlugin plugin) {
+    // 末影龙定时器管理
+    private int enderDragonTaskId = -1;
+    
+    public MobTransformManager(BraveSurvivalPlugin plugin) {
         this.plugin = plugin;
     }
     
-    /**
-     * 初始化
-     */
     public void initialize() {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
     
     // ==================== 被动生物变形 ====================
     
-    /**
-     * 监听生物生成事件 - 被动生物变形
-     * 牛/羊→兔子(8格内有玩家), 海豚→鳕鱼(10格), 猪→疣猪兽, 鸡→骷髅骑手
-     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onCreatureSpawnForTransformation(CreatureSpawnEvent event) {
         if (event.isCancelled()) return;
@@ -101,48 +99,13 @@ public class MissingFeaturesManager1 implements Listener {
         }
     }
     
-    /**
-     * 检查是否是鱼
-     */
     private boolean isFish(Entity entity) {
         return entity instanceof Cod || entity instanceof Salmon || 
                entity instanceof TropicalFish;
     }
     
-    /**
-     * 检查附近是否有玩家
-     */
-    private boolean hasPlayerNearby(Location location, double distance) {
-        for (Player player : location.getWorld().getPlayers()) {
-            if (player.getLocation().distance(location) <= distance) {
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    /**
-     * 获取最近的玩家
-     */
-    private Player getNearestPlayer(Location location, double distance) {
-        Player nearest = null;
-        double minDist = distance;
-        for (Player player : location.getWorld().getPlayers()) {
-            double dist = player.getLocation().distance(location);
-            if (dist < minDist) {
-                minDist = dist;
-                nearest = player;
-            }
-        }
-        return nearest;
-    }
-    
     // ==================== 中立生物敌对化 ====================
     
-    /**
-     * 监听生物生成事件 - 中立生物敌对化
-     * 狼/蜜蜂/铁傀儡/北极熊/末影人在16格内敌对；僵尸猪灵在32格内敌对
-     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onCreatureSpawnForHostile(CreatureSpawnEvent event) {
         if (event.isCancelled()) return;
@@ -166,10 +129,9 @@ public class MissingFeaturesManager1 implements Listener {
         // 北极熊敌对 (16格内有玩家)
         if (event.getEntity() instanceof PolarBear polarBear) {
             if (hasPlayerNearby(loc, 16.0)) {
-                // PolarBear没有setAnger方法，使用目标设置
-                Player nearestPlayer = getNearestPlayer(loc, 16.0);
-                if (nearestPlayer != null) {
-                    polarBear.setTarget(nearestPlayer);
+                Player nearest = getNearestPlayer(loc, 16.0);
+                if (nearest != null) {
+                    polarBear.setTarget(nearest);
                 }
             }
         }
@@ -185,44 +147,37 @@ public class MissingFeaturesManager1 implements Listener {
     
     // ==================== 末影龙增强 ====================
     
-    /**
-     * 监听实体伤害事件 - 末影龙增强
-     */
     @EventHandler(priority = EventPriority.HIGH)
-    public void onEntityDamageForEnderDragon(EntityDamageEvent event) {
-        if (event.isCancelled()) return;
-        
-        // 末影龙每tick回血 (通过定时任务实现)
+    public void onEntitySpawnForEnderDragon(EntitySpawnEvent event) {
         if (event.getEntity() instanceof EnderDragon dragon) {
-            // 启动回血任务
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (!dragon.isValid() || dragon.isDead()) {
-                        this.cancel();
-                        return;
-                    }
-                    // 每tick 1%几率回复1HP
-                    if (random.nextDouble() < 0.01) {
-                        double maxHealth = dragon.getMaxHealth();
-                        double currentHealth = dragon.getHealth();
-                        if (currentHealth < maxHealth) {
-                            dragon.setHealth(Math.min(maxHealth, currentHealth + 1.0));
+            // 启动单一定时器
+            if (enderDragonTaskId == -1) {
+                BukkitRunnable task = new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (!dragon.isValid() || dragon.isDead()) {
+                            enderDragonTaskId = -1;
+                            this.cancel();
+                            return;
+                        }
+                        // 每tick 1%几率回复1HP
+                        if (random.nextDouble() < 0.01) {
+                            double maxHealth = dragon.getMaxHealth();
+                            double currentHealth = dragon.getHealth();
+                            if (currentHealth < maxHealth) {
+                                dragon.setHealth(Math.min(maxHealth, currentHealth + 1.0));
+                            }
                         }
                     }
-                }
-            }.runTaskTimer(plugin, 1L, 1L);
+                };
+                task.runTaskTimer(plugin, 1L, 1L);
+                enderDragonTaskId = task.getTaskId();
+            }
         }
     }
     
-    /**
-     * 监听实体生成事件 - 龙息增强
-     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntitySpawnForDragonBreath(EntitySpawnEvent event) {
-        if (event.isCancelled()) return;
-        
-        // 龙息云团增强 (半径=4, 持续400刻)
         if (event.getEntity() instanceof AreaEffectCloud cloud) {
             if (cloud.getSource() instanceof EnderDragon) {
                 cloud.setRadius(4.0f);
@@ -233,9 +188,6 @@ public class MissingFeaturesManager1 implements Listener {
     
     // ==================== 烈焰人增强 ====================
     
-    /**
-     * 监听实体生成事件 - 烈焰人增强
-     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onCreatureSpawnForBlaze(CreatureSpawnEvent event) {
         if (event.isCancelled()) return;
@@ -244,15 +196,14 @@ public class MissingFeaturesManager1 implements Listener {
             // 无重力
             blaze.setGravity(false);
             
-            // 速度增加 (使用正确的Attribute名称)
+            // 速度增加
             try {
-                org.bukkit.attribute.Attribute speedAttr = org.bukkit.attribute.Attribute.valueOf("GENERIC_MOVEMENT_SPEED");
-                blaze.getAttribute(speedAttr).setBaseValue(0.4);
-            } catch (IllegalArgumentException e) {
-                // 如果属性名不同，尝试其他方式
+                blaze.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(0.4);
+            } catch (Exception e) {
+                // 忽略属性不存在的情况
             }
             
-            // 火焰轨迹 (通过定时任务实现)
+            // 火焰轨迹
             new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -260,7 +211,6 @@ public class MissingFeaturesManager1 implements Listener {
                         this.cancel();
                         return;
                     }
-                    // 在烈焰人位置放置火焰
                     Location loc = blaze.getLocation();
                     if (loc.getBlock().getType() == Material.AIR) {
                         loc.getBlock().setType(Material.FIRE);
@@ -272,10 +222,6 @@ public class MissingFeaturesManager1 implements Listener {
     
     // ==================== 渐进式摔伤debuff ====================
     
-    /**
-     * 监听实体伤害事件 - 渐进式摔伤debuff
-     * 按伤害量分4级：1心→4+心，逐步添加失明/反胃/夜视等
-     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamageForProgressiveFall(EntityDamageEvent event) {
         if (event.isCancelled()) return;
@@ -285,7 +231,6 @@ public class MissingFeaturesManager1 implements Listener {
             
             double damage = event.getFinalDamage();
             
-            // 4级渐进式debuff
             if (damage >= 8.0) { // 4+心
                 player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 100, 0));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 200, 0));
@@ -310,10 +255,6 @@ public class MissingFeaturesManager1 implements Listener {
     
     // ==================== 渐进式溺水debuff ====================
     
-    /**
-     * 监听玩家移动事件 - 渐进式溺水debuff
-     * 按精确空气值：≤225拉拽, ≤200挖掘疲劳, ≤100+虚弱, ≤60+反胃, ≤30+失明
-     */
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerMoveForProgressiveDrowning(PlayerMoveEvent event) {
         if (event.isCancelled()) return;
@@ -322,29 +263,19 @@ public class MissingFeaturesManager1 implements Listener {
         if (!player.isUnderWater()) return;
         
         int remainingAir = player.getRemainingAir();
-        int maxAir = player.getMaximumAir();
         
-        // ≤225: 向下拉拽
         if (remainingAir <= 225) {
             player.setVelocity(player.getVelocity().add(new Vector(0, -0.05, 0)));
         }
-        
-        // ≤200: 挖掘疲劳
         if (remainingAir <= 200) {
             player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 40, 0));
         }
-        
-        // ≤100: 虚弱
         if (remainingAir <= 100) {
             player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 40, 0));
         }
-        
-        // ≤60: 反胃
         if (remainingAir <= 60) {
             player.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 40, 0));
         }
-        
-        // ≤30: 失明
         if (remainingAir <= 30) {
             player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0));
         }
@@ -352,33 +283,23 @@ public class MissingFeaturesManager1 implements Listener {
     
     // ==================== 末影之眼碎裂 ====================
     
-    /**
-     * 监听玩家使用物品事件 - 末影之眼碎裂
-     * 投出约4秒(81刻)后碎裂，附带粒子和音效
-     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerUseItemForEnderEye(PlayerInteractEvent event) {
         if (event.isCancelled()) return;
         
         if (event.getItem() != null && event.getItem().getType() == Material.ENDER_EYE) {
-            // 延迟碎裂
             new BukkitRunnable() {
                 @Override
                 public void run() {
-                    // 查找附近的末影之眼
                     for (Entity entity : event.getPlayer().getNearbyEntities(50, 50, 50)) {
                         if (entity instanceof EnderSignal enderSignal) {
-                            // 延迟81刻(约4秒)后碎裂
                             new BukkitRunnable() {
                                 @Override
                                 public void run() {
                                     if (enderSignal.isValid()) {
                                         Location loc = enderSignal.getLocation();
-                                        // 生成粒子
                                         loc.getWorld().spawnParticle(org.bukkit.Particle.CRIT, loc, 10);
-                                        // 播放音效
                                         loc.getWorld().playSound(loc, Sound.ENTITY_ENDER_EYE_DEATH, 1.0f, 1.0f);
-                                        // 移除
                                         enderSignal.remove();
                                     }
                                 }
@@ -392,16 +313,12 @@ public class MissingFeaturesManager1 implements Listener {
     
     // ==================== TNT物品爆炸 ====================
     
-    /**
-     * 监听实体掉落事件 - TNT物品爆炸
-     * 掉落的TNT物品有几率召唤TNT实体(引信80)
-     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDropItemForTNT(EntityDropItemEvent event) {
         if (event.isCancelled()) return;
         
         if (event.getItemDrop().getItemStack().getType() == Material.TNT) {
-            if (random.nextDouble() < 0.1) { // 10%几率
+            if (random.nextDouble() < 0.1) {
                 Location loc = event.getItemDrop().getLocation();
                 TNTPrimed tnt = loc.getWorld().spawn(loc, TNTPrimed.class);
                 tnt.setFuseTicks(80);
@@ -412,18 +329,21 @@ public class MissingFeaturesManager1 implements Listener {
     
     // ==================== 低亮度随机音效 ====================
     
-    /**
-     * 监听玩家移动事件 - 低亮度随机音效
-     * 亮度=0时1.66%几率播放恐怖音效
-     */
+    private long lastAmbientSoundTick = 0;
+    
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerMoveForAmbientSounds(PlayerMoveEvent event) {
         if (event.isCancelled()) return;
         
+        // 限制频率：每玩家每秒最多检查一次
+        long currentTick = event.getPlayer().getWorld().getFullTime();
+        if (currentTick - lastAmbientSoundTick < 20) return;
+        lastAmbientSoundTick = currentTick;
+        
         Player player = event.getPlayer();
         int lightLevel = player.getLocation().getBlock().getLightLevel();
         
-        if (lightLevel == 0 && random.nextDouble() < 0.0166) { // 1.66%几率
+        if (lightLevel == 0 && random.nextDouble() < 0.0166) {
             Sound[] horrorSounds = {
                 Sound.AMBIENT_CAVE,
                 Sound.ENTITY_GHAST_AMBIENT,
@@ -450,20 +370,13 @@ public class MissingFeaturesManager1 implements Listener {
     
     // ==================== 铁傀儡猛击攻击 ====================
     
-    /**
-     * 监听实体攻击事件 - 铁傀儡猛击攻击
-     * 1.5%几率浮空+TNT爆炸
-     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamageByEntityForIronGolemSmash(EntityDamageByEntityEvent event) {
         if (event.isCancelled()) return;
         
         if (event.getDamager() instanceof IronGolem golem && event.getEntity() instanceof Player player) {
-            if (random.nextDouble() < 0.015) { // 1.5%几率
-                // 浮空
+            if (random.nextDouble() < 0.015) {
                 player.setVelocity(new Vector(0, 2.0, 0));
-                
-                // 延迟爆炸
                 new BukkitRunnable() {
                     @Override
                     public void run() {
@@ -478,14 +391,9 @@ public class MissingFeaturesManager1 implements Listener {
     
     // ==================== 卫道士图腾掉率降低 ====================
     
-    /**
-     * 监听实体死亡事件 - 卫道士图腾掉率降低
-     * 掉落率降至66%（原版100%）
-     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDeathForEvokerTotem(EntityDeathEvent event) {
-        if (event.getEntity() instanceof Evoker evoker) {
-            // 移除图腾 (66%几率保留)
+        if (event.getEntity() instanceof Evoker) {
             if (random.nextDouble() > 0.66) {
                 event.getDrops().removeIf(item -> item.getType() == Material.TOTEM_OF_UNDYING);
             }
@@ -494,10 +402,6 @@ public class MissingFeaturesManager1 implements Listener {
     
     // ==================== 岩浆热浪 ====================
     
-    /**
-     * 监听玩家移动事件 - 岩浆热浪
-     * 岩浆旁1格放置火焰方块造成伤害
-     */
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerMoveForLavaHeat(PlayerMoveEvent event) {
         if (event.isCancelled()) return;
@@ -505,14 +409,11 @@ public class MissingFeaturesManager1 implements Listener {
         Player player = event.getPlayer();
         Location loc = player.getLocation();
         
-        // 检查附近1格是否有岩浆
         for (int x = -1; x <= 1; x++) {
             for (int y = -1; y <= 1; y++) {
                 for (int z = -1; z <= 1; z++) {
-                    Material blockType = loc.getBlock().getRelative(x, y, z).getType();
-                    if (blockType == Material.LAVA) {
-                        // 造成伤害
-                        if (random.nextDouble() < 0.1) { // 10%几率
+                    if (loc.getBlock().getRelative(x, y, z).getType() == Material.LAVA) {
+                        if (random.nextDouble() < 0.1) {
                             player.damage(1.0);
                             player.setFireTicks(40);
                         }
@@ -525,20 +426,14 @@ public class MissingFeaturesManager1 implements Listener {
     
     // ==================== 盾牌格挡箭偏转 ====================
     
-    /**
-     * 监听实体伤害事件 - 盾牌格挡箭偏转
-     * 盾牌格挡后箭向下偏转并标记为玩家箭
-     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamageForShieldDeflection(EntityDamageByEntityEvent event) {
         if (event.isCancelled()) return;
         
         if (event.getEntity() instanceof Player player && event.getDamager() instanceof Arrow arrow) {
             if (player.isBlocking()) {
-                // 向下偏转
                 Vector velocity = arrow.getVelocity();
                 arrow.setVelocity(new Vector(velocity.getX() * 0.5, -0.5, velocity.getZ() * 0.5));
-                // 标记为玩家箭
                 arrow.setShooter(player);
             }
         }
@@ -546,17 +441,37 @@ public class MissingFeaturesManager1 implements Listener {
     
     // ==================== 蜜蜂蛰刺增强 ====================
     
-    /**
-     * 监听实体伤害事件 - 蜜蜂蛰刺增强
-     * 中毒10秒 + 虚弱30秒
-     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamageForBeeSting(EntityDamageByEntityEvent event) {
         if (event.isCancelled()) return;
         
         if (event.getDamager() instanceof Bee && event.getEntity() instanceof Player player) {
-            player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 200, 1)); // 中毒10秒
-            player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 600, 0)); // 虚弱30秒
+            player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 200, 1));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 600, 0));
         }
+    }
+    
+    // ==================== 辅助方法 ====================
+    
+    private boolean hasPlayerNearby(Location location, double distance) {
+        for (Player player : location.getWorld().getPlayers()) {
+            if (player.getLocation().distance(location) <= distance) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private Player getNearestPlayer(Location location, double distance) {
+        Player nearest = null;
+        double minDist = distance;
+        for (Player player : location.getWorld().getPlayers()) {
+            double dist = player.getLocation().distance(location);
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = player;
+            }
+        }
+        return nearest;
     }
 }
