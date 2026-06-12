@@ -465,20 +465,13 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
             return;
         }
 
+        // 移动掉落物品 - 数据包逻辑：0.083%概率
         if (ConfigManager.getPlayerConfig().has("drop_items_on_move") &&
             ConfigManager.getPlayerConfig().get("drop_items_on_move").getAsBoolean()) {
             double chance = ConfigManager.getPlayerConfig().has("drop_items_on_move_chance") ?
                 ConfigManager.getPlayerConfig().get("drop_items_on_move_chance").getAsDouble() : 0.00083;
-            if (Math.random() < chance) {
-                Player player = event.getPlayer();
-                ItemStack[] contents = player.getInventory().getContents();
-                for (int i = 0; i < contents.length; i++) {
-                    if (contents[i] != null && contents[i].getType() != Material.AIR) {
-                        player.getWorld().dropItemNaturally(player.getLocation(), contents[i]);
-                        player.getInventory().setItem(i, null);
-                        break;
-                    }
-                }
+            if (random.nextDouble() < chance) {
+                dropRandomItem(event.getPlayer());
             }
         }
     }
@@ -497,18 +490,61 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
                 int count = ConfigManager.getPlayerConfig().has("drop_items_on_hit_count") ?
                     ConfigManager.getPlayerConfig().get("drop_items_on_hit_count").getAsInt() : 4;
 
+                // 数据包逻辑：4次50%概率，随机选择槽位(0-40)
                 for (int i = 0; i < count; i++) {
-                    if (Math.random() < chance) {
-                        ItemStack[] contents = player.getInventory().getContents();
-                        for (int j = 0; j < contents.length; j++) {
-                            if (contents[j] != null && contents[j].getType() != Material.AIR) {
-                                player.getWorld().dropItemNaturally(player.getLocation(), contents[j]);
-                                player.getInventory().setItem(j, null);
-                                break;
-                            }
-                        }
+                    if (random.nextDouble() < chance) {
+                        dropRandomItem(player);
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * 从玩家背包随机掉落一个物品
+     * 模拟数据包的 drop.mcfunction 逻辑
+     */
+    private void dropRandomItem(Player player) {
+        // 随机选择槽位 (0-40，对应背包36格+4装备格)
+        int slotIndex = random.nextInt(41);
+        
+        ItemStack item = null;
+        
+        if (slotIndex < 36) {
+            // 背包槽位 0-35
+            item = player.getInventory().getItem(slotIndex);
+        } else if (slotIndex == 36) {
+            item = player.getInventory().getHelmet();
+        } else if (slotIndex == 37) {
+            item = player.getInventory().getChestplate();
+        } else if (slotIndex == 38) {
+            item = player.getInventory().getLeggings();
+        } else if (slotIndex == 39) {
+            item = player.getInventory().getBoots();
+        } else if (slotIndex == 40) {
+            item = player.getInventory().getItemInOffHand();
+        }
+        
+        if (item != null && item.getType() != Material.AIR) {
+            // 在玩家头顶生成掉落物
+            player.getWorld().dropItemNaturally(
+                player.getLocation().add(0, 1, 0), 
+                item.clone()
+            );
+            
+            // 清除原槽位
+            if (slotIndex < 36) {
+                player.getInventory().setItem(slotIndex, null);
+            } else if (slotIndex == 36) {
+                player.getInventory().setHelmet(null);
+            } else if (slotIndex == 37) {
+                player.getInventory().setChestplate(null);
+            } else if (slotIndex == 38) {
+                player.getInventory().setLeggings(null);
+            } else if (slotIndex == 39) {
+                player.getInventory().setBoots(null);
+            } else if (slotIndex == 40) {
+                player.getInventory().setItemInOffHand(null);
             }
         }
     }

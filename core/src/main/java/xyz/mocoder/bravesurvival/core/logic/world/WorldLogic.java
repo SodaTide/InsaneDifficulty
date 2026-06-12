@@ -1,5 +1,7 @@
 package xyz.mocoder.bravesurvival.core.logic.world;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import xyz.mocoder.bravesurvival.core.config.ConfigManager;
 import xyz.mocoder.bravesurvival.core.entity.EntityWrapper;
 import xyz.mocoder.bravesurvival.core.utils.FunctionalRandom;
@@ -64,13 +66,15 @@ public class WorldLogic {
             return false;
         }
         
-        double chance = ConfigManager.getBlocksConfig().get("silverfish_chance").getAsDouble();
-        
         // 检查方块是否在列表中
         if (ConfigManager.getBlocksConfig().has("silverfish_blocks")) {
-            // 这里需要检查方块ID是否在列表中
-            // 具体实现在平台适配器中
-            return true;
+            com.google.gson.JsonArray silverfishBlocks = ConfigManager.getBlocksConfig().getAsJsonArray("silverfish_blocks");
+            String blockIdLower = blockId.toLowerCase();
+            for (com.google.gson.JsonElement element : silverfishBlocks) {
+                if (element.getAsString().toLowerCase().equals(blockIdLower)) {
+                    return true;
+                }
+            }
         }
         
         return false;
