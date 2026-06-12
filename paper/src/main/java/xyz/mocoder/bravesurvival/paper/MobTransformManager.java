@@ -13,49 +13,45 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.Random;
-import java.util.UUID;
 
 /**
  * 生物变形与敌对化管理器
  * 处理被动生物变形、中立生物敌对化、末影龙增强、烈焰人增强等
  */
 public class MobTransformManager implements Listener {
-    
+
     private final BraveSurvivalPlugin plugin;
     private final Random random = new Random();
-    
-    // 末影龙定时器管理
+
     private int enderDragonTaskId = -1;
-    
+
     public MobTransformManager(BraveSurvivalPlugin plugin) {
         this.plugin = plugin;
     }
-    
+
     public void initialize() {
         Bukkit.getPluginManager().registerEvents(this, plugin);
-        
-        // 启动定时任务：检测玩家附近的生物并触发变形
         startTransformationTask();
+        startArrowTrackingTask();
+        startWitherSkullTask();
     }
-    
-    /**
-     * 启动变形定时任务
-     * 每10tick（0.5秒）检测一次玩家附近的生物
-     */
+
+    // ==================== 变形定时任务 ====================
+
     private void startTransformationTask() {
         new BukkitRunnable() {
             @Override
             public void run() {
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     Location playerLoc = player.getLocation();
-                    
-                    // 检测8格内的牛/羊
+
                     for (Entity entity : player.getNearbyEntities(8, 8, 8)) {
                         if (entity instanceof Cow cow) {
                             transformEntity(cow, Rabbit.class, playerLoc);
@@ -66,12 +62,10 @@ public class MobTransformManager implements Listener {
                         } else if (entity instanceof Chicken chicken) {
                             transformToJockey(chicken, playerLoc);
                         } else if (entity instanceof Dolphin dolphin) {
-                            // 海豚10格
                             if (player.getLocation().distance(dolphin.getLocation()) <= 10) {
                                 transformEntity(dolphin, Cod.class, playerLoc);
                             }
                         } else if (isFish(entity)) {
-                            // 鱼16格，33%几率
                             if (player.getLocation().distance(entity.getLocation()) <= 16) {
                                 if (random.nextDouble() < 0.33) {
                                     transformEntity(entity, Guardian.class, playerLoc);
@@ -81,174 +75,186 @@ public class MobTransformManager implements Listener {
                     }
                 }
             }
-        }.runTaskTimer(plugin, 20L, 10L); // 延迟1秒启动，每0.5秒执行一次
+        }.runTaskTimer(plugin, 20L, 10L);
     }
-    
-    /**
-     * 变形实体
-     */
-    private void transformEntity(Entity from, Class<? extends Entity> toClass, Location playerLoc) {
-        Location loc = from.getLocation();
-        World world = loc.getWorld();
-        
-        // 移除原实体
-        from.remove();
-        
-        // 生成新实体
-        Entity newEntity = world.spawn(loc, toClass);
-        
-        // 播放音效
-        world.playSound(loc, Sound.ENTITY_EVOKER_PREPARE_SUMMON, 0.5f, 1.2f);
+
+    // ==================== 怪物箭矢追踪 ====================
+
+    private void startArrowTrackingTask() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (World world : Bukkit.getWorlds()) {
+                    for (Entity entity : world.getEntities()) {
+                        // 检查是否是箭矢弹射物
+                        if (entity instanceof AbstractArrow arrow && !(arrow.getShooter() instanceof Player)) {
+                            if (arrow.isInBlock()) continue;
+
+                            // 查找32格内最近的玩家
+                            Player nearest = null;
+                            double nearestDist = 32.0;
+                            for (Player player : world.getPlayers()) {
+                                if (player.getGameMode() == org.bukkit.GameMode.SPECTATOR ||
+                                    player.getGameMode() == org.bukkit.GameMode.CREATIVE) continue;
+                                double dist = arrow.getLocation().distance(player.getLocation());
+                                if (dist < nearestDist && dist > 0.5) {
+                                    nearestDist = dist;
+                                    nearest = player;
+                                }
+                            }
+
+                            if (nearest != null) {
+                                // 追踪玩家
+                                Vector direction = nearest.getEyeLocation().toVector()
+                                    .subtract(arrow.getLocation().toVector()).normalize();
+                                Vector velocity = arrow.getVelocity();
+                                double speed = velocity.length();
+                                if (speed < 0.5) speed = 0.5;
+                                arrow.setVelocity(direction.multiply(speed));
+                            }
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 2L); // 每2tick执行一次
     }
-    
-    /**
-     * 变形为骷髅骑手
-     */
-    private void transformToJockey(Chicken chicken, Location playerLoc) {
-        Location loc = chicken.getLocation();
-        World world = loc.getWorld();
-        
-        // 移除鸡
-        chicken.remove();
-        
-        // 生成骷髅骑手
-        Skeleton skeleton = world.spawn(loc, Skeleton.class);
-        Chicken newChicken = world.spawn(loc, Chicken.class);
-        newChicken.addPassenger(skeleton);
-        
-        // 播放音效
-        world.playSound(loc, Sound.ENTITY_EVOKER_PREPARE_SUMMON, 0.5f, 1.2f);
+
+    // ==================== 女巫凋灵骷髅头弹射物 ====================
+
+    private void startWitherSkullTask() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (World world : Bukkit.getWorlds()) {
+                    for (Entity entity : world.getEntities()) {
+                        if (entity instanceof Witch witch && !witch.isDead() && witch.isValid()) {
+                            // 1.5% 概率发射凋灵骷髅头
+                            if (random.nextDouble() < 0.015) {
+                                Player nearest = getNearestPlayer(witch.getLocation(), 12.0);
+                                if (nearest != null) {
+                                    shootWitherSkull(witch, nearest);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 100L, 5L); // 每5tick检查一次
     }
-    
-    // ==================== 被动生物变形（生成时检查）====================
-    
-    @EventHandler(priority = EventPriority.HIGH)
-    public void onCreatureSpawnForTransformation(CreatureSpawnEvent event) {
-        if (event.isCancelled()) return;
-        
-        Location loc = event.getLocation();
-        World world = loc.getWorld();
-        
-        // 牛/羊→兔子 (8格内有玩家)
-        if (event.getEntity() instanceof Cow || event.getEntity() instanceof Sheep) {
-            if (hasPlayerNearby(loc, 8.0)) {
-                event.setCancelled(true);
-                world.spawn(loc, Rabbit.class);
-                world.playSound(loc, Sound.ENTITY_EVOKER_PREPARE_SUMMON, 0.5f, 1.2f);
-                return;
-            }
-        }
-        
-        // 海豚→鳕鱼 (10格内有玩家)
-        if (event.getEntity() instanceof Dolphin) {
-            if (hasPlayerNearby(loc, 10.0)) {
-                event.setCancelled(true);
-                world.spawn(loc, Cod.class);
-                world.playSound(loc, Sound.ENTITY_EVOKER_PREPARE_SUMMON, 0.5f, 1.2f);
-                return;
-            }
-        }
-        
-        // 猪→疣猪兽 (8格内有玩家)
-        if (event.getEntity() instanceof Pig) {
-            if (hasPlayerNearby(loc, 8.0)) {
-                event.setCancelled(true);
-                world.spawn(loc, Hoglin.class);
-                world.playSound(loc, Sound.ENTITY_EVOKER_PREPARE_SUMMON, 0.5f, 1.2f);
-                return;
-            }
-        }
-        
-        // 鸡→骷髅骑手 (8格内有玩家)
-        if (event.getEntity() instanceof Chicken) {
-            if (hasPlayerNearby(loc, 8.0)) {
-                event.setCancelled(true);
-                Skeleton skeleton = world.spawn(loc, Skeleton.class);
-                Chicken chicken = world.spawn(loc, Chicken.class);
-                chicken.addPassenger(skeleton);
-                world.playSound(loc, Sound.ENTITY_EVOKER_PREPARE_SUMMON, 0.5f, 1.2f);
-                return;
-            }
-        }
-        
-        // 鱼→守卫者 (33%几率, 16格内有玩家)
-        if (isFish(event.getEntity())) {
-            if (hasPlayerNearby(loc, 16.0) && random.nextDouble() < 0.33) {
-                event.setCancelled(true);
-                world.spawn(loc, Guardian.class);
-                world.playSound(loc, Sound.ENTITY_EVOKER_PREPARE_SUMMON, 0.5f, 1.2f);
-                return;
-            }
-        }
+
+    private void shootWitherSkull(Witch witch, Player target) {
+        Location witchHead = witch.getLocation().add(0, 1.5, 0);
+        Vector direction = target.getEyeLocation().toVector().subtract(witchHead.toVector()).normalize();
+
+        WitherSkull skull = witch.getWorld().spawn(
+            witchHead.add(direction.multiply(0.5)),
+            WitherSkull.class
+        );
+        skull.setVelocity(direction.multiply(0.3));
+        skull.setShooter(witch);
     }
-    
-    private boolean isFish(Entity entity) {
-        return entity instanceof Cod || entity instanceof Salmon || 
-               entity instanceof TropicalFish;
-    }
-    
-    // ==================== 中立生物敌对化 ====================
-    
+
+    // ==================== 被动生物敌对化 ====================
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onCreatureSpawnForHostile(CreatureSpawnEvent event) {
         if (event.isCancelled()) return;
-        
+
         Location loc = event.getLocation();
-        
-        // 狼敌对 (16格内有玩家)
+
         if (event.getEntity() instanceof Wolf wolf) {
             if (hasPlayerNearby(loc, 16.0)) {
                 wolf.setAngry(true);
             }
         }
-        
-        // 蜜蜂敌对 (16格内有玩家)
+
         if (event.getEntity() instanceof Bee bee) {
             if (hasPlayerNearby(loc, 16.0)) {
                 bee.setAnger(Integer.MAX_VALUE);
             }
         }
-        
-        // 北极熊敌对 (16格内有玩家)
+
         if (event.getEntity() instanceof PolarBear polarBear) {
             if (hasPlayerNearby(loc, 16.0)) {
-                // 延迟到下一tick设置目标，避免在tick期间修改AI
                 Player nearest = getNearestPlayer(loc, 16.0);
                 if (nearest != null) {
                     final Player target = nearest;
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         try {
                             polarBear.setTarget(target);
-                        } catch (Exception e) {
-                            // 忽略AI修改错误
-                        }
+                        } catch (Exception e) {}
                     });
                 }
             }
         }
-        
-        // 僵尸猪灵敌对 (32格内有玩家)
+
         if (event.getEntity() instanceof PigZombie pigZombie) {
             if (hasPlayerNearby(loc, 32.0)) {
-                // 延迟到下一tick设置目标，避免在tick期间修改AI
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     try {
                         pigZombie.setAngry(true);
                         pigZombie.setAnger(Integer.MAX_VALUE);
-                    } catch (Exception e) {
-                        // 忽略AI修改错误
-                    }
+                    } catch (Exception e) {}
                 });
             }
         }
     }
-    
+
+    // ==================== 幻翼火焰抗性 ====================
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onCreatureSpawnForPhantom(CreatureSpawnEvent event) {
+        if (event.isCancelled()) return;
+
+        if (event.getEntity() instanceof Phantom phantom) {
+            // 免疫火焰
+            phantom.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, Integer.MAX_VALUE, 0, false, false));
+            phantom.setShouldBurnInDay(false);
+            // 设置攻击力为3
+            try {
+                phantom.getAttribute(Attribute.ATTACK_DAMAGE).setBaseValue(3.0);
+            } catch (Exception e) {}
+        }
+    }
+
+    // ==================== 恶魂爆炸威力6 ====================
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onCreatureSpawnForGhast(CreatureSpawnEvent event) {
+        if (event.isCancelled()) return;
+
+        if (event.getEntity() instanceof Ghast ghast) {
+            // 爆炸威力设为6
+            ghast.setExplosionPower(6);
+            // 隐身
+            ghast.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
+        }
+    }
+
+    // ==================== 马匹随机踢人 ====================
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPlayerMoveForHorseKick(PlayerMoveEvent event) {
+        if (event.isCancelled()) return;
+        if (event.getFrom().getBlockX() == event.getTo().getBlockX() &&
+            event.getFrom().getBlockY() == event.getTo().getBlockY() &&
+            event.getFrom().getBlockZ() == event.getTo().getBlockZ()) return;
+
+        Player player = event.getPlayer();
+        if (player.isInsideVehicle() && player.getVehicle() instanceof AbstractHorse) {
+            // 16.6% 概率被踢下马
+            if (random.nextDouble() < 0.166) {
+                player.leaveVehicle();
+                player.playSound(player.getLocation(), Sound.ENTITY_HORSE_ANGRY, 1.0f, 1.0f);
+            }
+        }
+    }
+
     // ==================== 末影龙增强 ====================
-    
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntitySpawnForEnderDragon(EntitySpawnEvent event) {
         if (event.getEntity() instanceof EnderDragon dragon) {
-            // 启动单一定时器
             if (enderDragonTaskId == -1) {
                 BukkitRunnable task = new BukkitRunnable() {
                     @Override
@@ -273,7 +279,7 @@ public class MobTransformManager implements Listener {
             }
         }
     }
-    
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntitySpawnForDragonBreath(EntitySpawnEvent event) {
         if (event.getEntity() instanceof AreaEffectCloud cloud) {
@@ -283,25 +289,20 @@ public class MobTransformManager implements Listener {
             }
         }
     }
-    
+
     // ==================== 烈焰人增强 ====================
-    
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onCreatureSpawnForBlaze(CreatureSpawnEvent event) {
         if (event.isCancelled()) return;
-        
+
         if (event.getEntity() instanceof Blaze blaze) {
-            // 无重力
             blaze.setGravity(false);
-            
-            // 速度增加
+
             try {
                 blaze.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(0.4);
-            } catch (Exception e) {
-                // 忽略属性不存在的情况
-            }
-            
-            // 火焰轨迹
+            } catch (Exception e) {}
+
             new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -317,51 +318,61 @@ public class MobTransformManager implements Listener {
             }.runTaskTimer(plugin, 10L, 10L);
         }
     }
-    
+
     // ==================== 渐进式摔伤debuff ====================
-    
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamageForProgressiveFall(EntityDamageEvent event) {
         if (event.isCancelled()) return;
-        
-        if (event.getEntity() instanceof Player player && 
+
+        if (event.getEntity() instanceof Player player &&
             event.getCause() == EntityDamageEvent.DamageCause.FALL) {
-            
+
             double damage = event.getFinalDamage();
-            
-            if (damage >= 8.0) { // 4+心
+
+            if (damage >= 8.0) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 100, 0));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 200, 0));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 100, 0));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 300, 1));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 300, 1));
-            } else if (damage >= 6.0) { // 3心
+            } else if (damage >= 6.0) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 150, 0));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 100, 0));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 200, 0));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 200, 0));
-            } else if (damage >= 4.0) { // 2心
+            } else if (damage >= 4.0) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 100, 0));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 150, 0));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 150, 0));
-            } else if (damage >= 2.0) { // 1心
+            } else if (damage >= 2.0) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 100, 0));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 0));
             }
         }
     }
-    
-    // ==================== 渐进式溺水debuff ====================
-    
+
+    // ==================== 渐进式溺水debuff + 水流拖拽 ====================
+
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerMoveForProgressiveDrowning(PlayerMoveEvent event) {
         if (event.isCancelled()) return;
-        
+
         Player player = event.getPlayer();
         if (!player.isUnderWater()) return;
-        
+
         int remainingAir = player.getRemainingAir();
-        
+
+        // 水流拖拽 - 气泡柱下拉
+        if (player.getLocation().getBlock().getType() == Material.BUBBLE_COLUMN) {
+            org.bukkit.block.BlockState state = player.getLocation().getBlock().getState();
+            if (state instanceof org.bukkit.block.data.Waterlogged) {
+                // 检查是否是向下拖拽的气泡柱
+                player.setVelocity(player.getVelocity().add(new Vector(0, -0.5, 0)));
+            }
+        }
+
+        // 溺水渐进惩罚
         if (remainingAir <= 225) {
             player.setVelocity(player.getVelocity().add(new Vector(0, -0.05, 0)));
         }
@@ -378,13 +389,13 @@ public class MobTransformManager implements Listener {
             player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0));
         }
     }
-    
+
     // ==================== 末影之眼碎裂 ====================
-    
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerUseItemForEnderEye(PlayerInteractEvent event) {
         if (event.isCancelled()) return;
-        
+
         if (event.getItem() != null && event.getItem().getType() == Material.ENDER_EYE) {
             new BukkitRunnable() {
                 @Override
@@ -408,13 +419,13 @@ public class MobTransformManager implements Listener {
             }.runTaskLater(plugin, 5L);
         }
     }
-    
+
     // ==================== TNT物品爆炸 ====================
-    
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDropItemForTNT(EntityDropItemEvent event) {
         if (event.isCancelled()) return;
-        
+
         if (event.getItemDrop().getItemStack().getType() == Material.TNT) {
             if (random.nextDouble() < 0.1) {
                 Location loc = event.getItemDrop().getLocation();
@@ -424,23 +435,22 @@ public class MobTransformManager implements Listener {
             }
         }
     }
-    
+
     // ==================== 低亮度随机音效 ====================
-    
+
     private long lastAmbientSoundTick = 0;
-    
+
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerMoveForAmbientSounds(PlayerMoveEvent event) {
         if (event.isCancelled()) return;
-        
-        // 限制频率：每玩家每秒最多检查一次
+
         long currentTick = event.getPlayer().getWorld().getFullTime();
         if (currentTick - lastAmbientSoundTick < 20) return;
         lastAmbientSoundTick = currentTick;
-        
+
         Player player = event.getPlayer();
         int lightLevel = player.getLocation().getBlock().getLightLevel();
-        
+
         if (lightLevel == 0 && random.nextDouble() < 0.0166) {
             Sound[] horrorSounds = {
                 Sound.AMBIENT_CAVE,
@@ -460,18 +470,18 @@ public class MobTransformManager implements Listener {
                 Sound.AMBIENT_WARPED_FOREST_MOOD,
                 Sound.AMBIENT_SOUL_SAND_VALLEY_ADDITIONS
             };
-            
+
             Sound randomSound = horrorSounds[random.nextInt(horrorSounds.length)];
             player.playSound(player.getLocation(), randomSound, 0.5f, 0.8f + random.nextFloat() * 0.4f);
         }
     }
-    
+
     // ==================== 铁傀儡猛击攻击 ====================
-    
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamageByEntityForIronGolemSmash(EntityDamageByEntityEvent event) {
         if (event.isCancelled()) return;
-        
+
         if (event.getDamager() instanceof IronGolem golem && event.getEntity() instanceof Player player) {
             if (random.nextDouble() < 0.015) {
                 player.setVelocity(new Vector(0, 2.0, 0));
@@ -486,9 +496,9 @@ public class MobTransformManager implements Listener {
             }
         }
     }
-    
+
     // ==================== 卫道士图腾掉率降低 ====================
-    
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDeathForEvokerTotem(EntityDeathEvent event) {
         if (event.getEntity() instanceof Evoker) {
@@ -497,16 +507,16 @@ public class MobTransformManager implements Listener {
             }
         }
     }
-    
+
     // ==================== 岩浆热浪 ====================
-    
+
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerMoveForLavaHeat(PlayerMoveEvent event) {
         if (event.isCancelled()) return;
-        
+
         Player player = event.getPlayer();
         Location loc = player.getLocation();
-        
+
         for (int x = -1; x <= 1; x++) {
             for (int y = -1; y <= 1; y++) {
                 for (int z = -1; z <= 1; z++) {
@@ -521,13 +531,13 @@ public class MobTransformManager implements Listener {
             }
         }
     }
-    
+
     // ==================== 盾牌格挡箭偏转 ====================
-    
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamageForShieldDeflection(EntityDamageByEntityEvent event) {
         if (event.isCancelled()) return;
-        
+
         if (event.getEntity() instanceof Player player && event.getDamager() instanceof Arrow arrow) {
             if (player.isBlocking()) {
                 Vector velocity = arrow.getVelocity();
@@ -536,21 +546,43 @@ public class MobTransformManager implements Listener {
             }
         }
     }
-    
+
     // ==================== 蜜蜂蛰刺增强 ====================
-    
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamageForBeeSting(EntityDamageByEntityEvent event) {
         if (event.isCancelled()) return;
-        
+
         if (event.getDamager() instanceof Bee && event.getEntity() instanceof Player player) {
             player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 200, 1));
             player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 600, 0));
         }
     }
-    
+
     // ==================== 辅助方法 ====================
-    
+
+    private void transformEntity(Entity from, Class<? extends Entity> toClass, Location playerLoc) {
+        Location loc = from.getLocation();
+        World world = loc.getWorld();
+        from.remove();
+        world.spawn(loc, toClass);
+        world.playSound(loc, Sound.ENTITY_EVOKER_PREPARE_SUMMON, 0.5f, 1.2f);
+    }
+
+    private void transformToJockey(Chicken chicken, Location playerLoc) {
+        Location loc = chicken.getLocation();
+        World world = loc.getWorld();
+        chicken.remove();
+        Skeleton skeleton = world.spawn(loc, Skeleton.class);
+        Chicken newChicken = world.spawn(loc, Chicken.class);
+        newChicken.addPassenger(skeleton);
+        world.playSound(loc, Sound.ENTITY_EVOKER_PREPARE_SUMMON, 0.5f, 1.2f);
+    }
+
+    private boolean isFish(Entity entity) {
+        return entity instanceof Cod || entity instanceof Salmon || entity instanceof TropicalFish;
+    }
+
     private boolean hasPlayerNearby(Location location, double distance) {
         for (Player player : location.getWorld().getPlayers()) {
             if (player.getLocation().distance(location) <= distance) {
@@ -559,7 +591,7 @@ public class MobTransformManager implements Listener {
         }
         return false;
     }
-    
+
     private Player getNearestPlayer(Location location, double distance) {
         Player nearest = null;
         double minDist = distance;
