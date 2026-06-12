@@ -264,7 +264,15 @@ public class AdvancedFeatureManager implements Listener {
             spawnLoc.setY(loc.getWorld().getHighestBlockYAt(spawnLoc));
             Husk husk = loc.getWorld().spawn(spawnLoc, Husk.class);
             husk.addScoreboardTag("guard_desert_temple");
-            husk.setTarget(player);
+            // 延迟设置目标，避免AI未初始化导致NPE
+            final Husk spawnedHusk = husk;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try {
+                    if (spawnedHusk.isValid() && !spawnedHusk.isDead()) {
+                        spawnedHusk.setTarget(player);
+                    }
+                } catch (Exception e) {}
+            }, 5L);
         }
 
         // 标记已生成
@@ -286,7 +294,14 @@ public class AdvancedFeatureManager implements Listener {
             spawnLoc.setY(loc.getWorld().getHighestBlockYAt(spawnLoc));
             Drowned drowned = loc.getWorld().spawn(spawnLoc, Drowned.class);
             drowned.addScoreboardTag("guard_shipwreck");
-            drowned.setTarget(player);
+            final Drowned spawnedDrowned = drowned;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try {
+                    if (spawnedDrowned.isValid() && !spawnedDrowned.isDead()) {
+                        spawnedDrowned.setTarget(player);
+                    }
+                } catch (Exception e) {}
+            }, 5L);
         }
 
         AreaEffectCloud marker = loc.getWorld().spawn(loc, AreaEffectCloud.class);
@@ -307,7 +322,14 @@ public class AdvancedFeatureManager implements Listener {
             spawnLoc.setY(loc.getWorld().getHighestBlockYAt(spawnLoc));
             Illusioner illusioner = loc.getWorld().spawn(spawnLoc, Illusioner.class);
             illusioner.addScoreboardTag("guard_ruined_portal");
-            illusioner.setTarget(player);
+            final Illusioner spawnedIllusioner = illusioner;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try {
+                    if (spawnedIllusioner.isValid() && !spawnedIllusioner.isDead()) {
+                        spawnedIllusioner.setTarget(player);
+                    }
+                } catch (Exception e) {}
+            }, 5L);
         }
 
         AreaEffectCloud marker = loc.getWorld().spawn(loc, AreaEffectCloud.class);
@@ -328,7 +350,14 @@ public class AdvancedFeatureManager implements Listener {
             spawnLoc.setY(loc.getWorld().getHighestBlockYAt(spawnLoc));
             Illusioner illusioner = loc.getWorld().spawn(spawnLoc, Illusioner.class);
             illusioner.addScoreboardTag("guard_jungle_pyramid");
-            illusioner.setTarget(player);
+            final Illusioner spawnedIllusioner = illusioner;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                try {
+                    if (spawnedIllusioner.isValid() && !spawnedIllusioner.isDead()) {
+                        spawnedIllusioner.setTarget(player);
+                    }
+                } catch (Exception e) {}
+            }, 5L);
         }
 
         AreaEffectCloud marker = loc.getWorld().spawn(loc, AreaEffectCloud.class);

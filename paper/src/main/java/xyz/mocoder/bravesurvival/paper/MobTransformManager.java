@@ -179,23 +179,28 @@ public class MobTransformManager implements Listener {
                 Player nearest = getNearestPlayer(loc, 16.0);
                 if (nearest != null) {
                     final Player target = nearest;
-                    Bukkit.getScheduler().runTask(plugin, () -> {
+                    // 延迟设置目标，避免AI未初始化导致NPE
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         try {
-                            polarBear.setTarget(target);
+                            if (polarBear.isValid() && !polarBear.isDead()) {
+                                polarBear.setTarget(target);
+                            }
                         } catch (Exception e) {}
-                    });
+                    }, 5L);
                 }
             }
         }
 
         if (event.getEntity() instanceof PigZombie pigZombie) {
             if (hasPlayerNearby(loc, 32.0)) {
-                Bukkit.getScheduler().runTask(plugin, () -> {
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     try {
-                        pigZombie.setAngry(true);
-                        pigZombie.setAnger(Integer.MAX_VALUE);
+                        if (pigZombie.isValid() && !pigZombie.isDead()) {
+                            pigZombie.setAngry(true);
+                            pigZombie.setAnger(Integer.MAX_VALUE);
+                        }
                     } catch (Exception e) {}
-                });
+                }, 5L);
             }
         }
     }
