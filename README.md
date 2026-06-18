@@ -1,6 +1,6 @@
 # Insane Difficulty - Paper Plugin
 
-基于 [Insane Difficulty 1.3 数据包](https://github.com/RoarkCats/Insane-Difficulty) 的 Paper 插件 1:1 复刻版。
+基于 Insane Difficulty 1.3 数据包 的 Paper 插件 1:1 复刻版。
 
 将原版数据包的全部 95 项特性从 mcfunction/JSON 迁移为 Java 插件代码，可在 Paper 1.21.4 服务端直接运行，无需数据包。
 
