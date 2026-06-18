@@ -1,6 +1,9 @@
 package xyz.mocoder.bravesurvival.paper;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -849,7 +852,7 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
         if (event.getDamager() instanceof Enderman enderman && event.getEntity() instanceof Player) {
             if (ConfigManager.getMobConfig("enderman").has("teleport_after_hit") &&
                 ConfigManager.getMobConfig("enderman").get("teleport_after_hit").getAsBoolean()) {
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                Bukkit.getScheduler().runTaskLater(this, () -> {
                     try {
                         if (enderman.isValid() && !enderman.isDead()) {
                             // 数据包逻辑: spreadplayers, 0-24格随机, 对应高度
@@ -903,6 +906,18 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
                 ConfigManager.getMobConfig("endermite").get("spawn_from_dead_endermen").getAsBoolean()) {
                 enderman.getWorld().spawnEntity(enderman.getLocation(), EntityType.ENDERMITE);
             }
+        }
+    }
+
+    // ==================== 凋灵骷髅掉落物品 ====================
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onEntityDeathForWitherSkeleton(EntityDeathEvent event) {
+        if (event.getEntity() instanceof WitherSkeleton) {
+            // 数据包: wither_skeletons/new.mcfunction 设置 hand_items: stone_sword + stone_pickaxe
+            // 死亡时掉落石剑和石镐
+            event.getDrops().add(new ItemStack(Material.STONE_SWORD));
+            event.getDrops().add(new ItemStack(Material.STONE_PICKAXE));
         }
     }
 

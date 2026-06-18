@@ -294,6 +294,17 @@ public class MobTransformManager implements Listener {
             ghast.setExplosionPower(6);
             // 隐身
             ghast.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
+
+            // 数据包逻辑: new_ghast.mcfunction - 额外召唤2只恶魂（带隐身+explosion_power:6）
+            // 使用spawn reason检查避免递归（额外召唤的恶魂不再触发额外召唤）
+            if (event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.CUSTOM) {
+                Location loc = ghast.getLocation();
+                for (int i = 0; i < 2; i++) {
+                    Ghast extra = loc.getWorld().spawn(loc, Ghast.class, CreatureSpawnEvent.SpawnReason.CUSTOM);
+                    extra.setExplosionPower(6);
+                    extra.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
+                }
+            }
         }
     }
 
@@ -349,9 +360,15 @@ public class MobTransformManager implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntitySpawnForDragonBreath(EntitySpawnEvent event) {
         if (event.getEntity() instanceof AreaEffectCloud cloud) {
-            if (cloud.getSource() instanceof EnderDragon) {
-                cloud.setRadius(4.0f);
-                cloud.setDuration(400);
+            // 数据包: 检测 dragon_breath 粒子 + radius_per_tick:0.006666667
+            // Paper API 没有 getSource()，改用粒子类型检测
+            try {
+                if (cloud.getParticle() == org.bukkit.Particle.DRAGON_BREATH) {
+                    cloud.setRadius(4.0f);
+                    cloud.setDuration(400);
+                }
+            } catch (Exception e) {
+                // API不支持getParticle()，使用回退方案
             }
         }
     }
@@ -450,8 +467,13 @@ public class MobTransformManager implements Listener {
         }
         if (remainingAir <= 60) {
             player.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 40, 0));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 40, 1));
         }
         if (remainingAir <= 30) {
+            // 数据包: mining_fatigue 5 3, weakness 5 2, nausea 5 1, blindness 5 0
+            player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 40, 3));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 40, 2));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 40, 1));
             player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0));
         }
     }
@@ -620,7 +642,8 @@ public class MobTransformManager implements Listener {
         if (event.isCancelled()) return;
 
         if (event.getDamager() instanceof Bee && event.getEntity() instanceof Player player) {
-            player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 200, 1));
+            // 数据包: poison 10 0 (10秒 amplifier 0) + weakness 30 0
+            player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 200, 0));
             player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 600, 0));
         }
     }

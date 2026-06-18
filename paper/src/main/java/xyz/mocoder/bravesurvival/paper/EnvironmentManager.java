@@ -22,6 +22,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import xyz.mocoder.bravesurvival.core.config.ConfigManager;
 
 import java.util.HashMap;
 import java.util.Map;
