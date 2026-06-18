@@ -3,6 +3,9 @@ plugins {
 }
 
 java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
 }
@@ -16,49 +19,22 @@ repositories {
 }
 
 dependencies {
-    // Paper API
     compileOnly "io.papermc.paper:paper-api:${project.property('paper_version')}"
-    
-    // Core module
-    implementation project(':core')
-}
-
-// 配置sourceSets
-sourceSets {
-    main {
-        java {
-            srcDirs = ['src/main/java']
-        }
-        resources {
-            srcDirs = ['src/main/resources']
-        }
-    }
 }
 
 tasks.withType(JavaCompile) {
     options.encoding = "UTF-8"
 }
 
-// 声明对core:jar的依赖
-tasks.named('jar') {
-    dependsOn ':core:jar'
-}
-
-// 配置jar
 jar {
-    archiveBaseName.set('BraveSurvival-Paper')
+    archiveBaseName.set('InsaneDifficulty-Paper')
     archiveVersion.set(project.property('mod_version'))
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     
     manifest {
         attributes(
-            'Implementation-Title': 'BraveSurvival Paper Plugin',
+            'Implementation-Title': 'Insane Difficulty Paper Plugin',
             'Implementation-Version': project.property('mod_version')
         )
-    }
-    
-    // 包含core模块
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
 }

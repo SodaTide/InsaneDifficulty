@@ -1,10 +1,6 @@
 pluginManagement {
     repositories {
         maven {
-            name = 'Fabric'
-            url = 'https://maven.fabricmc.net/'
-        }
-        maven {
             name = 'PaperMC'
             url = 'https://repo.papermc.io/repository/maven-public/'
         }
@@ -13,5 +9,5 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'BraveSurvival'
-include('core', 'fabric', 'paper')
+rootProject.name = 'InsaneDifficulty'
+include('paper')

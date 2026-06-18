@@ -1,16 +1,19 @@
-name: BraveSurvival
-version: '2.0.0'
-main: xyz.mocoder.bravesurvival.paper.BraveSurvivalPlugin
+name: InsaneDifficulty
+version: '${project.version}'
+main: com.bravesurvival.insanedifficulty.InsaneDifficultyPlugin
 api-version: '1.21'
-description: 一个通过Mixin修改Minecraft游戏机制的Paper插件，大幅增加游戏难度
-author: MCMocoder
-website: https://github.com/EinsteinZheng/BraveSurvival
+description: Insane Difficulty v2.0 - 完全还原数据包特性的Paper插件
+author: RoarkCats
+prefix: Insane
+website: https://github.com/BraveSurvival
+
 commands:
-  bravesurvival:
-    description: BraveSurvival插件命令
-    usage: /bravesurvival [reload]
-    permission: bravesurvival.command
+  insane:
+    description: Insane Difficulty主命令
+    usage: /insane [reload]
+    permission: insane.admin
+
 permissions:
-  bravesurvival.command:
-    description: 允许使用BraveSurvival命令
+  insane.admin:
+    description: 管理员权限
     default: op

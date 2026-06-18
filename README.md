@@ -1,490 +1,205 @@
-# 猛男生存 (BraveSurvival)
+# Insane Difficulty - Paper Plugin
 
-一个通过Mixin修改Minecraft游戏机制的模组/插件，大幅增加游戏难度，让生存挑战更加刺激。
+基于 [Insane Difficulty 1.3 数据包](https://github.com/RoarkCats/Insane-Difficulty) 的 Paper 插件 1:1 复刻版。
 
-**支持双平台部署：Fabric客户端模组 + Paper服务端插件**
+将原版数据包的全部 95 项特性从 mcfunction/JSON 迁移为 Java 插件代码，可在 Paper 1.21.4 服务端直接运行，无需数据包。
 
-**基于 Insane Difficulty 1.3 数据包改编**
-
-> ⚠️ **注意**：Fabric 模组版尚未完善全部特性，部分功能仅在 Paper 插件版中实现。如需完整体验，请使用 Paper 插件版。
-
-## 🎮 功能特性
+## 特性总览
 
 ### 怪物强化（17种）
 
-| 怪物 | 特性 | 状态 |
-|------|------|------|
-| 僵尸 | HP20, 伤害5, 速度0.23, 追踪64, 护甲3, 不烧, 火焰抗性, 50%随机装备, 增援0.15 | ✅ |
-| 溺尸 | 所有溺尸持三叉戟 | ✅ |
-| 尸壳 | 攻击给予饥饿II 10秒 | ✅ |
-| 骷髅 | 伤害10, 不烧, 强化装备, 下界合金头盔, **力量V弓+冲击II** | ✅ |
-| 流浪者 | 攻击给予迟缓II 10秒 | ✅ |
-| 苦力怕 | 高压, 引信1秒, **半径10**, 隐形, 速度0.3 | ✅ |
-| 蜘蛛 | 隐形, 速度0.5, 中毒咬击 | ✅ |
-| 末影人 | HP40, 伤害14, 速度0.75, 追踪64, 死亡生成末影螨, 破坏方块 | ✅ |
-| 幻翼 | **永久火焰抗性**, 不烧, 伤害3 | ✅ |
-| 恶魂 | 隐形, 三只生成, **爆炸威力6** | ✅ |
-| 猪灵 | HP16, 伤害9, 速度0.3, 永久敌对(除非全套金甲) | ✅ |
-| 铁傀儡 | HP200, 攻击玩家, 猛击爆炸 | ✅ |
-| 幻术师 | 力量弓, 自动瞄准 | ✅ |
-| 女巫 | 凋灵骷髅随从, 受伤喷药水, **1.5%概率发射凋灵骷髅头** | ✅ |
-| 掠夺者 | **快速装填V+多重射击**, 劫掠兽伴随 | ✅ |
-| 烈焰人 | 无重力, 速度0.4, 火焰轨迹, 火焰抗性 | ✅ |
-| 凋灵骷髅 | HP30, 伤害5, 石剑+石镐, 凋灵效果, 破坏方块 | ✅ |
+| 怪物 | 特性 |
+|------|------|
+| 僵尸 | 追踪64, 伤害5, 不燃烧, 火焰抗性, 增援0.15, 50%随机装备 |
+| 溺尸 | 所有溺尸持三叉戟 |
+| 尸壳 | 攻击给予饥饿 |
+| 骷髅 | 力量V弓, 冲击II弓, 下界合金头盔 |
+| 流浪者 | 攻击给予缓慢V |
+| 苦力怕 | 充能, 引信1tick, 爆炸半径10, 速度0.3, 隐形 |
+| 蜘蛛 | 隐形, 速度0.5, 中毒咬击 |
+| 末影人 | 攻击后传送, 死亡生成4只末影螨, 破坏头部方块 |
+| 幻翼 | 火焰抗性, 伤害3 |
+| 恶魂 | 隐形, 三只生成, 爆炸威力6 |
+| 猪灵 | 永久敌对（除非全套金甲） |
+| 铁傀儡 | HP150, 主动攻击玩家, 跳跃爆炸 |
+| 幻术师 | 力量V弓 |
+| 女巫 | 1.5%概率发射凋灵骷髅头, 受伤时喷溅药水 |
+| 掠夺者 | 快速装填V+多重射击, 成对生成, 劫掠兽伴随 |
+| 烈焰人 | 无重力, 高速, 火焰轨迹 |
+| 凋灵骷髅 | HP30, 伤害5, 凋灵效果, 破坏头部方块, 20%概率生成女巫 |
 
 ### 被动生物变形（6种）
 
-| 变形 | 条件 | 状态 |
-|------|------|------|
-| 牛/羊→兔子 | 8格内有玩家 | ✅ |
-| 海豚→鳕鱼 | 10格内有玩家 | ✅ |
-| 猪→疣猪兽 | 8格内有玩家 | ✅ |
-| 鸡→骷髅骑手 | 8格内有玩家 | ✅ |
-| 鱼→守卫者 | 33%几率, 16格内有玩家 | ✅ |
-| 兔子替换牛羊 | 自然生成时 | ✅ |
+| 变形 | 条件 |
+|------|------|
+| 牛/羊 → 兔子 | 8格内有玩家 |
+| 海豚 → 鳕鱼 | 10格内有玩家 |
+| 猪 → 疣猪兽 | 8格内有玩家 |
+| 鸡 → 僵尸鸡骑士 | 16格内有玩家 |
+| 鱼 → 守卫者 | 33%概率 |
+| 末影人死亡 → 末影螨 | 4只 |
 
-### 中立生物敌对化（4种）
+### 中立生物敌对化
 
-| 生物 | 敌对范围 | 状态 |
-|------|---------|------|
-| 狼 | 16格 | ✅ |
-| 蜜蜂 | 16格 | ✅ |
-| 北极熊 | 16格 | ✅ |
-| 僵尸猪灵 | 32格 | ✅ |
-
-### 食物系统（4项）🆕
-
-| 特性 | 描述 | 状态 |
-|------|------|------|
-| **生肉惩罚** | 吃生肉 80%反胃20秒 + 67%饥饿5秒 | ✅ |
-| **肉类变质** | 背包中肉类随机腐烂为腐肉（1/6000/tick） | ✅ |
-| **腐肉加强** | 吃腐肉 67%概率饥饿V 6秒 | ✅ |
-| **食物中毒** | 吃任何食物 10%概率中毒+饥饿+反胃 | ✅ |
+狼、蜜蜂、僵尸猪灵（32格）、猪灵（除非全套金甲）、铁傀儡、北极熊、末影人 均在一定范围内主动攻击玩家。
 
 ### 玩家机制（15项）
 
-| 特性 | 描述 | 状态 |
-|------|------|------|
-| 无自然再生 | 必须靠食物回血 | ✅ |
-| 渐进式摔伤 | 4级debuff(失明/反胃/夜视/虚弱/缓慢) | ✅ |
-| 渐进式溺水 | 5级精确空气值判定 | ✅ |
-| **饥饿三级阈值** | ≤10虚弱 / ≤7+疲劳 / ≤5+饥饿80 | ✅ |
-| 重甲减速 | 铁/钻石/下界合金按数量分级 | ✅ |
-| 受伤掉落物品 | 4次独立50%几率 | ✅ |
-| 移动掉落物品 | 0.083%几率 | ✅ |
-| 死亡生成僵尸 | 50%几率, 皮革头盔 | ✅ |
-| 睡觉跳过1/3夜晚 | ✅ | ✅ |
-| **睡醒极度饥饿+缓慢** | 饥饿127 + 缓慢I 20秒 + 幻翼 | ✅ |
-| 挖掘疲劳(无工具) | 不持有工具时疲劳I | ✅ |
-| 着火火焰轨迹 | 着火留下火焰+虚弱 | ✅ |
-| **马匹随机踢人** | 骑马时16.6%概率被踢下马 | ✅ |
-| **水流拖拽** | 气泡柱每tick下拉0.5格 | ✅ |
-| **死亡信息隐藏** | showDeathMessages false | ✅ |
+- 无自然生命恢复
+- 渐进式摔落伤害（4级debuff: 缓慢/虚弱/失明/反胃/夜视）
+- 渐进式溺水（5级: 挖掘疲劳/虚弱/反胃/失明/下沉）
+- 饥饿三级阈值（≤10虚弱 / ≤7+疲劳 / ≤5+饥饿80）
+- 重甲减速（铁/金/钻石/下界合金）
+- 受伤掉落物品（4次50%概率）
+- 移动掉落物品（0.083%概率）
+- 死亡生成墓碑僵尸（50%概率）
+- 睡觉跳过1/3夜晚 + 醒来生成幻翼+饥饿127+缓慢
+- 挖掘疲劳（不使用工具时）
+- 着火火焰轨迹+虚弱
+- 马匹随机踢人（0.166%概率）
+- 气泡柱水流增强
+- 黑曜石/哭泣黑曜石挖掘给予饥饿255
+- 船划行消耗饥饿
 
-### 环境机制（10项）
+### 食物系统（4项）
 
-| 特性 | 描述 | 状态 |
-|------|------|------|
-| 岩浆热浪 | 岩浆旁1格放置火焰 | ✅ |
-| 仙人掌中毒 | 中毒II 2秒 | ✅ |
-| 门在水中损坏 | ✅ | ✅ |
-| 传送门破坏 | 50%几率 | ✅ |
-| 下界炼药锅干涸 | ✅ | ✅ |
-| 低亮度随机音效 | 1.66%几率, 16种音效 | ✅ |
-| 天气复杂模式 | 0.0033%触发, 集束/群组/精准闪电 | ✅ |
-| **强制困难难度** | 启动时设置difficulty hard | ✅ |
-| **干海带熔炼时间翻倍** | 普通熔炉400→800 ticks | ✅ |
-| **船下沉+饥饿** | 30秒后开始下沉, 饥饿IV | ✅ |
+- 生肉惩罚：80%反胃20秒 + 67%饥饿5秒
+- 肉类变质：背包中肉类随机变为腐肉
+- 腐肉加强：67%概率饥饿40级6秒
+- 食物中毒：10%概率中毒+饥饿+反胃
 
 ### 战斗机制（10项）
 
-| 特性 | 描述 | 状态 |
-|------|------|------|
-| 箭矢误射 | 20%几率偏转-45°~+45° | ✅ |
-| **怪物箭矢追踪** | 所有怪物箭矢32格内自动追踪玩家 | ✅ |
-| 末影珍珠生成末影螨 | 落地必定生成 | ✅ |
-| 末地水晶反射弹射物 | 5格内反转速度 | ✅ |
-| 图腾削弱 | 移除再生/吸收/抗火 | ✅ |
-| 进入村庄不祥之兆 | 33%几率 | ✅ |
-| 药水副作用 | 50%几率随机负面效果 | ✅ |
-| 末地爆炸辐射 | 毒+虚弱10格 | ✅ |
-| 盾牌格挡箭偏转 | 箭向下偏转并标记 | ✅ |
-| **女巫凋灵骷髅头** | 1.5%概率发射追踪凋灵骷髅头 | ✅ |
+- 箭矢误射：20%概率偏转
+- 怪物箭矢自动追踪（32格内）
+- 末影珍珠落地生成末影螨
+- 末影水晶反射投射物
+- 图腾削弱（再生效果降低）
+- 进入村庄33%概率获得不祥之兆
+- 药水50%概率有随机副作用
+- 末地爆炸辐射（毒+虚弱+反胃10格范围）
+- 盾牌格挡箭矢偏转
+- 女巫受伤喷溅药水（health_boost + hero_of_the_village）
 
-### 结构修改（8项）🆕
+### 结构守卫（5种）
 
-| 特性 | 描述 | 状态 |
-|------|------|------|
-| **沙漠神殿** | 12只尸壳守卫 + **宝箱TNT陷阱** | ✅ |
-| **沉船** | 8只溺尸守卫 | ✅ |
-| **废弃传送门** | 4只幻术师守卫 | ✅ |
-| **丛林神殿** 🆕 | 4只幻术师守卫 | ✅ |
-| **埋藏宝藏** 🆕 | 4只恼鬼守卫 | ✅ |
-| 流浪商人→劫掠兽 | 劫掠兽+掠夺者+卫道士 | ✅ |
-| 商人羊驼→掠夺者+卫道士 | ✅ | ✅ |
-| **村民交易敌意** | 材料x10, 产出/10 (模拟gossip) | ✅ |
+| 结构 | 守卫 |
+|------|------|
+| 沙漠神殿 | 12只尸壳 + 宝箱TNT陷阱 |
+| 沉船 | 8只溺尸 |
+| 埋藏宝藏 | 4只恼鬼 |
+| 废弃传送门 | 4只幻术师 |
+| 丛林神庙 | 4只幻术师 |
 
-### 配方修改（5项）
+### 环境机制
 
-| 特性 | 描述 | 状态 |
-|------|------|------|
-| 木板 | 1原木→2木板 | ✅ |
-| 烈焰粉 | 1烈焰棒→1粉末 | ✅ |
-| 金萝卜 | 需要金锭而非金粒 | ✅ |
-| 闪烁西瓜 | 需要金锭而非金粒 | ✅ |
-| 干草块→小麦 | 1干草块=4小麦 | ✅ |
+- 岩浆热浪：附近1格放置火焰
+- 仙人掌中毒
+- 门在水中损坏
+- 传送门50%概率破坏
+- 下界炼药锅蒸发
+- 低亮度随机音效（16种）
+- 随机闪电风暴（集束/群组/精准/递归）
+- 桶漏水（10%概率）
+- 烈焰棒/粉/岩浆桶持有燃烧
+- 烈焰棒物品不可破坏
 
-### 其他特性（8项）
+### 配方修改
 
-| 特性 | 描述 | 状态 |
-|------|------|------|
-| 烈焰棒/岩浆桶燃烧 | 持有物品燃烧 | ✅ |
-| 桶漏水 | 10%几率 | ✅ |
-| 村民交易更贵 | 材料x10, 产出/10 | ✅ |
-| 猪灵以物易物重做 | 完整掉落表 | ✅ |
-| 凋灵骷髅自定义属性 | HP30, 伤害5, 石剑+石镐 | ✅ |
-| 高个生物破坏方块 | 凋灵骷髅+末影人 | ✅ |
-| 黑曜石挖掘饥饿255 | ✅ | ✅ |
-| 船划行饥饿IV | ✅ | ✅ |
+- 原木 → 2木板（原版4）
+- 烈焰棒 → 1烈焰粉（原版2）
+- 金胡萝卜/闪烁西瓜需金锭（原版金粒）
+- 干草块 → 4小麦（原版9）
+- 干草块不掉落（需精准采集）
+- 矿石/食物普通熔炉时间翻倍，高炉/烟熏炉正常
 
-### 插件独有特性（数据包没有）
+### 其他特性
 
-| 特性 | 描述 | 配置项 |
-|------|------|--------|
-| 铁傀儡攻击玩家 | 16格内主动攻击最近玩家 | `plugin_unique.iron_golem_attack_players` |
-| 铁傀儡跳跃爆炸 | 跳跃时产生爆炸 | `plugin_unique.iron_golem_jump_explosion` |
-| 铁傀儡猛击攻击 | 1.5%几率浮空+TNT爆炸 | `plugin_unique.iron_golem_smash_attack` |
-| 烈焰人无重力 | setGravity(false) | `plugin_unique.blaze_no_gravity` |
-| 烈焰人速度0.4 | 比数据包1.0慢但合理 | `plugin_unique.blaze_speed` |
-| 恶魂三只生成 | 同数据包 | `plugin_unique.ghast_triple_spawn` |
-| 流浪商人→劫掠兽+掠夺者+卫道士 | 比数据包多卫道士 | `plugin_unique.trader_llama_to_pillager` |
-| 腐肉恢复+4饥饿 | 吃腐肉额外恢复 | `plugin_unique.rotten_flesh_extra_hunger` |
+- 流浪商人替换为劫掠兽+掠夺者
+- 村民交易更贵（负面声誉）
+- 猪灵以物易物削弱
+- 唤魔者不死图腾66%掉落
+- 末影之眼81次使用后击杀玩家
+- TNT破坏20%概率爆炸
+- 石头/矿石概率不掉落
+- 末影龙持续回血 + 火球范围增大
+- 末影人攻击后传送
 
-## 📁 项目结构（多模块架构）
-
-```
-BraveSurvival/
-├── core/                        # 核心逻辑模块（平台无关）
-│   └── src/main/java/
-│       └── xyz/mocoder/bravesurvival/core/
-│           ├── config/          # 配置管理
-│           ├── logic/           # 游戏逻辑
-│           │   ├── mob/         # 怪物逻辑
-│           │   ├── player/      # 玩家逻辑
-│           │   ├── world/       # 世界逻辑
-│           │   └── item/        # 物品逻辑
-│           ├── entity/          # 实体抽象接口
-│           ├── events/          # 事件适配器接口
-│           └── utils/           # 工具类
-├── fabric/                      # Fabric模组模块
-│   └── src/main/java/
-│       └── xyz/mocoder/bravesurvival/fabric/
-│           ├── BraveSurvivalMod.java   # Fabric入口
-│           ├── entity/                 # Fabric实体实现
-│           ├── events/                 # Fabric事件适配
-│           └── mixin/                  # Mixin注入点
-├── paper/                       # Paper插件模块
-│   └── src/main/java/
-│       └── xyz/mocoder/bravesurvival/paper/
-│           ├── BraveSurvivalPlugin.java      # Paper入口
-│           ├── RecipeManager.java            # 配方管理
-│           ├── VillagerTradeManager.java     # 村民交易管理
-│           ├── EntityBehaviorManager.java    # 实体行为管理
-│           ├── AdvancedFeatureManager.java   # 高级功能管理(结构守卫/TNT陷阱)
-│           ├── MobTransformManager.java      # 生物变形/箭矢追踪/女巫骷髅头
-│           ├── EnvironmentManager.java       # 环境机制/船下沉/村民gossip
-│           ├── FoodSystemManager.java        # 食物系统(生肉/变质/中毒)
-│           └── entity/                      # Paper实体实现
-└── README.md
-```
-
-## 🔧 技术栈
-
-### 版本支持
-| 平台 | 最低版本 | 推荐版本 |
-|------|---------|---------|
-| **Fabric** | 1.21.4 | 1.21.4+ |
-| **Paper** | 1.21.1 | 1.21.4+ |
-
-### 技术细节
-- **Java版本**：Java 21
-- **构建工具**：Gradle 8.14 + Kotlin DSL
-- **Fabric Loader**：0.16.10+
-- **Fabric API**：0.112.2+
-- **Paper API**：1.21.4-R0.1-SNAPSHOT
-
-## 🚀 构建说明
+## 构建
 
 ### 环境要求
 
-- **Java 21**：必须安装JDK 21或更高版本
-- **网络**：首次构建需要下载Minecraft资源（约500MB）
+- JDK 21（推荐 Zulu JDK 21）
+- 网络连接（首次构建需下载依赖）
 
 ### 构建命令
 
-```bash
-# 设置JAVA_HOME（如果系统有多个Java版本）
-# Windows PowerShell
-$env:JAVA_HOME = "F:\Program Files\Zulu\zulu-21"
+```powershell
+# 设置 JAVA_HOME（如系统有多个 Java 版本）
+$env:JAVA_HOME = "C:\Program Files\Zulu\zulu-21"
 
-# Windows CMD
-set JAVA_HOME=F:\Program Files\Zulu\zulu-21
+# 构建
+.\gradlew build --no-daemon
 
-# Linux/Mac
-export JAVA_HOME=/path/to/java21
-
-# 构建所有模块
-./gradlew build
-
-# 只构建Core模块
-./gradlew :core:build
-
-# 只构建Fabric模组
-./gradlew :fabric:build
-
-# 只构建Paper插件
-./gradlew :paper:build
-
-# 清理并重新构建
-./gradlew clean build
+# 输出文件
+# paper/build/libs/InsaneDifficulty-Paper-2.0.0.jar
 ```
 
-### 构建产物位置
+### 安装
+
+将 `InsaneDifficulty-Paper-2.0.0.jar` 放入服务器 `plugins` 文件夹，重启服务器即可。
+
+## 配置
+
+配置文件自动生成于 `plugins/InsaneDifficulty/config.yml`，所有特性均可通过配置开关或调整参数。
+
+重载配置：`/insane reload`
+
+## 项目结构
 
 ```
-BraveSurvival/
-├── core/build/libs/
-│   └── BraveSurvival-Core-2.0.0.jar          # 核心模块
-├── fabric/build/libs/
-│   ├── BraveSurvival-2.0.0.jar                # Fabric模组（已重映射）
-│   └── BraveSurvival-2.0.0-sources.jar        # 源代码
-└── paper/build/libs/
-    └── BraveSurvival-Paper-2.0.0.jar          # Paper插件
+paper/src/main/java/com/bravesurvival/insanedifficulty/
+├── InsaneDifficultyPlugin.java    # 插件入口
+├── config/
+│   └── ConfigManager.java         # 配置管理
+├── listener/
+│   ├── MobSpawnListener.java      # 生物生成事件
+│   ├── MobDamageListener.java     # 生物伤害事件 + 猪灵以物易物
+│   ├── PlayerListener.java        # 玩家事件（摔伤/食物/传送/睡觉）
+│   ├── BlockListener.java         # 方块破坏事件
+│   ├── ItemListener.java          # 物品耐久事件
+│   ├── ProjectileListener.java    # 投射物事件
+│   └── EntityDeathListener.java   # 实体死亡事件
+├── manager/
+│   ├── MobManager.java            # 生物行为管理
+│   ├── PlayerManager.java         # 玩家机制管理
+│   ├── CombatManager.java         # 战斗机制管理
+│   ├── WorldManager.java          # 世界/环境管理
+│   ├── ItemManager.java           # 物品/配方管理
+│   ├── StructureManager.java      # 结构守卫管理
+│   └── VillagerManager.java       # 村民交易管理
+├── task/
+│   ├── MainTickTask.java          # 主循环任务
+│   ├── BlazeTask.java             # 烈焰人任务（4tick）
+│   ├── BucketTask.java            # 桶漏水任务（10tick）
+│   └── WeatherTask.java           # 天气任务（10tick）
+└── util/
+    ├── EntityUtil.java            # 实体工具
+    ├── BlockUtil.java             # 方块工具
+    └── RNG.java                   # 随机数工具
 ```
 
-### 首次构建注意事项
+## 技术栈
 
-1. **下载Minecraft资源**：首次构建Fabric模块时，Gradle会下载Minecraft资源文件，这可能需要几分钟
-2. **网络问题**：如果下载失败，请检查网络连接或配置代理
-3. **Java版本**：确保使用Java 21，其他版本可能导致编译错误
+- **Paper API**: 1.21.4-R0.1-SNAPSHOT
+- **Java**: 21
+- **Gradle**: 8.14
 
-### 常见问题
-
-#### Q: 构建失败，提示"Unsupported class file major version"
-A: Java版本不匹配，请使用Java 21
-
-#### Q: 构建失败，提示找不到符号
-A: 可能是API变化，请检查错误信息并更新代码
-
-#### Q: Fabric构建很慢
-A: 首次构建需要下载Minecraft资源，请耐心等待
-
-## 📦 安装使用
-
-### Fabric客户端
-
-1. 安装 [Fabric Loader](https://fabricmc.net/use) (>=0.16.10)
-2. 下载 [Fabric API](https://www.curseforge.com/minecraft/mc-mods/fabric-api) (>=0.112.2)
-3. 下载本模组的 `BraveSurvival-2.0.0.jar`
-4. 将模组和API放入 `.minecraft/mods` 文件夹
-5. 启动游戏，选择Fabric配置文件
-
-### Paper服务端
-
-1. 下载本插件的 `BraveSurvival-Paper-2.0.0.jar`
-2. 将插件放入服务器的 `plugins` 文件夹
-3. 启动服务器，插件会自动生成配置文件
-4. 使用 `/bravesurvival reload` 重新加载配置
-
-## ⚙️ 配置说明
-
-配置文件位于 `config/bravesurvival/config.json`，支持100+可配置参数。
-
-### 完整配置示例
-
-```json
-{
-  "mobs": {
-    "zombie": {
-      "enabled": true,
-      "health": 20.0,
-      "damage": 5.0,
-      "speed": 0.23,
-      "follow_range": 64.0,
-      "armor": 3.0,
-      "burn_in_daylight": false,
-      "fire_resistance": true,
-      "enhanced_armor": true,
-      "spawn_reinforcements": 0.15,
-      "drowned_always_trident": true,
-      "husk_hunger": true
-    },
-    "creeper": {
-      "enabled": true,
-      "always_charged": true,
-      "instant_fuse": false,
-      "fuse_ticks": 20,
-      "invisible": true,
-      "explosion_radius": 10,
-      "speed": 0.3
-    },
-    "enderman": {
-      "enabled": true,
-      "health": 40.0,
-      "damage": 14.0,
-      "speed": 0.75,
-      "follow_range": 64.0,
-      "teleport_after_hit": true,
-      "destroy_blocks": true,
-      "spawn_endermites_on_death": true
-    }
-  },
-  "player": {
-    "fall_damage_debuff": true,
-    "progressive_fall_damage": true,
-    "no_natural_regeneration": true,
-    "mining_fatigue_without_tools": true,
-    "hunger_effects": true,
-    "heavy_armor_slowness": true,
-    "drop_items_on_hit": true,
-    "drop_items_on_hit_chance": 0.5,
-    "drop_items_on_hit_count": 4,
-    "drop_items_on_move": true,
-    "drop_items_on_move_chance": 0.00083,
-    "death_spawn_zombie": true,
-    "death_spawn_zombie_chance": 0.5
-  },
-  "world": {
-    "spawn_multiplier": 8,
-    "universal_anger": true,
-    "reduced_debug_info": true,
-    "random_lightning_storms": true,
-    "lightning_storm_chance": 0.000033,
-    "portal_break_chance": true,
-    "portal_break_chance_value": 0.5
-  },
-  "combat": {
-    "arrows_misfire_chance": 0.2,
-    "bad_omen_chance": 0.33,
-    "potion_side_effects_chance": 0.5,
-    "ender_crystals_reflect_range": 5.0,
-    "explosion_radiation_range": 10.0
-  },
-  "ender_dragon": {
-    "enabled": true,
-    "regen_chance_per_tick": 0.01,
-    "regen_amount": 1.0,
-    "breath_cloud_radius": 4.0,
-    "breath_cloud_duration": 400
-  },
-  "plugin_unique": {
-    "iron_golem_attack_players": true,
-    "iron_golem_jump_explosion": true,
-    "iron_golem_smash_attack": true,
-    "blaze_no_gravity": true,
-    "blaze_speed": 0.4,
-    "ghast_triple_spawn": true,
-    "trader_llama_to_pillager": true,
-    "rotten_flesh_extra_hunger": true
-  }
-}
-```
-
-## 📝 命令
-
-| 命令 | 权限 | 说明 |
-|------|------|------|
-| `/bravesurvival` | `bravesurvival.command` | 显示插件信息 |
-| `/bravesurvival reload` | `bravesurvival.command` | 重新加载配置 |
-
-## 📊 特性统计
-
-| 类别 | 数量 |
-|------|------|
-| 怪物强化 | 17种 |
-| 被动生物变形 | 6种 |
-| 中立生物敌对 | 4种 |
-| **食物系统** | **4项** |
-| 玩家机制 | 15项 |
-| 环境机制 | 10项 |
-| 战斗机制 | 10项 |
-| **结构修改** | **8项** |
-| 配方修改 | 5项 |
-| 其他特性 | 8项 |
-| **总计** | **~110项** |
-| 插件独有 | 8项 |
-
-## 🆚 数据包对比 (Insane Difficulty 1.3)
-
-| 特性类别 | 数据包 | 插件版 | 状态 |
-|---------|--------|--------|------|
-| 食物系统(4项) | ✅ | ✅ | **已补全** |
-| 水流拖拽 | ✅ | ✅ | **已补全** |
-| 怪物箭矢追踪 | ✅ | ✅ | **已补全** |
-| 幻翼火焰抗性 | ✅ | ✅ | **已补全** |
-| 女巫凋灵骷髅头 | ✅ | ✅ | **已补全** |
-| 恶魂爆炸威力6 | ✅ | ✅ | **已修复** |
-| 马匹踢人 | ✅ | ✅ | **已补全** |
-| 结构守卫(5处) | ✅ | ✅ | **已修复** |
-| 沙漠神殿TNT | ✅ | ✅ | **已补全** |
-| 村民交易敌意 | ✅ | ✅ | **已补全** |
-| 死亡信息隐藏 | ✅ | ✅ | **已补全** |
-| 强制困难难度 | ✅ | ✅ | **已补全** |
-| 睡觉饥饿+缓慢 | ✅ | ✅ | **已补全** |
-| 苦力怕半径10 | ✅ | ✅ | **已修复** |
-| 饥饿三级阈值 | ✅ | ✅ | **已补全** |
-| 掠夺者多重射击 | ✅ | ✅ | **已补全** |
-| 船下沉 | ✅ | ✅ | **已补全** |
-
-**插件版现已100%覆盖数据包全部特性。**
-
-## 📄 许可证
+## 许可证
 
 GNU GENERAL PUBLIC LICENSE
 
-## 👥 作者
+## 致谢
 
-- **原作者**：[MCMocoder](https://github.com/MCMocoder) - 原始项目开发者
-- **改进者**：SodaTide - 多模块重构、Paper插件实现
-- **特别感谢**：Zi__Min、vibe coding 与 AI 的支持
-
-## 🔗 相关链接
-
-- [原始项目（MCMocoder/BraveSurvival）](https://github.com/MCMocoder/BraveSurvival) - 本项目基于此改进而来
-- [Fork仓库（SodaTide/BraveSurvival）](https://github.com/SodaTide/BraveSurvival)
-- [Fabric官网](https://fabricmc.net/)
-- [PaperMC官网](https://papermc.io/)
-
-## 📋 更新日志
-
-### v2.1.0 (最新)
-- **食物系统完整实现**：生肉惩罚、肉类变质、腐肉加强、食物中毒
-- **怪物箭矢追踪**：所有怪物箭矢32格内自动追踪玩家
-- **女巫凋灵骷髅头**：1.5%概率发射追踪凋灵骷髅头弹射物
-- **结构守卫修复**：isInStructure()使用Paper API + 方块检测回退
-- **新增结构守卫**：丛林神殿(4只幻术师)、埋藏宝藏(4只恼鬼)
-- **沙漠神殿TNT陷阱**：打开宝箱生成点燃TNT
-- **马匹随机踢人**：骑马时16.6%概率被踢下马
-- **水流拖拽**：气泡柱每tick下拉0.5格
-- **幻翼永久火焰抗性**：不再被火焰伤害
-- **恶魂爆炸威力修复**：从x2改为x6(原版6倍)
-- **苦力怕爆炸半径修复**：从6改为10
-- **骷髅力量V弓**：附魔力量V+冲击II
-- **饥饿三级阈值**：≤10/7/5三级debuff
-- **掠夺者多重射击**：快速装填V+多重射击
-- **船下沉逻辑**：30秒后开始下沉
-- **睡觉极度饥饿**：饥饿127 + 缓慢I 20秒
-- **村民交易敌意**：材料x10, 产出/10
-- **强制困难难度**：启动时自动设置
-- **死亡信息隐藏**：showDeathMessages false
-- **干海带熔炼时间翻倍**：400→800 ticks
-
-### v2.0.0
-- 重构为多模块架构（core + fabric + paper）
-- 支持Fabric 1.21.4+
-- 支持Paper 1.21.1+
-- 使用JSON配置文件（100+参数）
-- 添加命令支持
-- 实现数据包全部97项特性
-- 添加8项插件独有特性
-- 优化性能
+- [RoarkCats](https://github.com/RoarkCats) - 原版 Insane Difficulty 数据包作者
+- [MCMocoder](https://github.com/MCMocoder) - 原始 BraveSurvival 项目

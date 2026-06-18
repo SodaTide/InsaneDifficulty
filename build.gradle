@@ -2,15 +2,6 @@ plugins {
     id 'java'
 }
 
-// 禁用根项目的Java编译（旧代码在src/main/java，已迁移到子模块）
-sourceSets {
-    main {
-        java {
-            srcDirs = []  // 禁用根项目的Java编译
-        }
-    }
-}
-
 subprojects {
     apply plugin: 'java'
 
@@ -28,10 +19,7 @@ subprojects {
     }
 }
 
-// 版本配置
 ext {
     minecraftVersion = project.property('minecraft_version')
     modVersion = project.property('mod_version')
-    mavenGroup = project.property('maven_group')
-    archivesBaseName = project.property('archives_base_name')
 }

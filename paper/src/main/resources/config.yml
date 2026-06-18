@@ -1,0 +1,246 @@
+# Insane Difficulty v2.0 配置文件
+# 所有配置项都有默认值，可以根据需要修改
+
+# 游戏规则
+game_rules:
+  natural_regeneration: false
+  universal_anger: true
+  forgive_dead_players: false
+  reduced_debug_info: true
+
+# 生物配置
+mobs:
+  zombie:
+    enabled: true
+    follow_range: 64.0
+    damage: 5.0
+    fire_resistance: true
+  creeper:
+    enabled: true
+    always_charged: true
+    fuse_ticks: 1
+    explosion_radius: 10
+    speed: 0.3
+  skeleton:
+    enabled: true
+    auto_aim: true
+    power_bow: true
+    netherite_helmet: true
+  spider:
+    enabled: true
+    invisible: true
+    speed: 0.5
+  phantom:
+    enabled: true
+    fire_resistance: true
+    damage: 3.0
+  blaze:
+    enabled: true
+    no_gravity: true
+    speed: 1.0
+  ghast:
+    enabled: true
+    explosion_power: 6
+    invisible: true
+  wither_skeleton:
+    enabled: true
+    health: 30.0
+    damage: 5.0
+    witch_spawn_chance: 0.2
+    destroy_blocks_near_skulls: true
+  iron_golem:
+    enabled: true
+    health_value: 150.0
+    smash_chance: 0.015
+  enderman:
+    enabled: true
+    teleport_after_hit: true
+    destroy_blocks: true
+    spawn_endermites_on_death: true
+  pillager:
+    enabled: true
+    quick_charge_5: true
+    multishot: true
+    spawn_in_pairs: true
+    ravager_with_pillager: true
+  witch:
+    enabled: true
+    wither_skulls: true
+    splash_potions_on_damage: true
+    spawn_with_wither_skeletons: true
+  illusioner:
+    enabled: true
+    auto_aim: true
+    power_bow: true
+  silverfish:
+    enabled: true
+  endermite:
+    enabled: true
+  bee:
+    enabled: true
+  wolf:
+    enabled: true
+  polar_bear:
+    enabled: true
+  zombified_piglin:
+    enabled: true
+  piglin:
+    enabled: true
+    always_angry_unless_full_gold: true
+  cow:
+    enabled: true
+    turn_into_rabbit: true
+    transform_range: 8.0
+  sheep:
+    enabled: true
+    turn_into_rabbit: true
+    transform_range: 8.0
+  dolphin:
+    enabled: true
+    turn_into_cod: true
+  pig:
+    enabled: true
+    turn_into_hoglin: true
+    transform_range: 8.0
+  chicken:
+    enabled: true
+    turn_into_jockey: true
+  fish:
+    enabled: true
+    turn_into_guardian: true
+    transform_chance: 0.33
+
+# 玩家配置
+player:
+  fall_damage_debuff: true
+  heavy_armor_slowness: true
+  mining_fatigue_without_tools: true
+  hunger_effects: true
+  hunger_weakness_1_threshold: 10
+  hunger_weakness_2_threshold: 7
+  hunger_weakness_3_threshold: 5
+  drop_items_on_move: true
+  drop_items_on_move_chance: 0.00083
+  drop_items_on_hit: true
+  drop_items_on_hit_chance: 0.5
+  drop_items_on_hit_count: 4
+  death_spawn_zombie: true
+  death_spawn_zombie_chance: 0.5
+  fall_damage_slowness_duration: 300
+  fall_damage_weakness_duration: 200
+  fall_damage_blindness_duration: 20
+  drowning_effects: true
+  drowning_sink: true
+
+# 睡眠配置
+sleep:
+  skip_time: true
+  phantom_spawn: true
+  phantom_spawn_chance: 0.5
+  phantom_count: 4
+  spawn_vex: true
+
+# 世界配置
+world:
+  doors_break_in_water: true
+  lava_heat_damage: true
+  lava_fire_ticks: 100
+  lava_weakness_on_fire: true
+  cactus_poison: true
+  lightning_storms: true
+  lightning_storm_chance: 0.000033
+  random_mob_noises: true
+  random_mob_noise_chance: 0.00166
+  portal_break_chance: true
+  portal_break_chance_value: 0.5
+
+# 闪电类型配置
+lightning:
+  normal_chance: 0.025
+  precision_chance: 0.0025
+  bundled_chance: 0.0025
+  recursive_chance: 0.0025
+  group_chance: 0.0025
+
+# 物品配置
+items:
+  buckets_leak: true
+  bucket_leak_chance: 0.1
+  eye_of_ender_explode: true
+  eye_of_ender_max_uses: 81
+
+# 战斗配置
+combat:
+  arrows_misfire: true
+  arrows_misfire_chance: 0.2
+  ender_crystals_reflect: true
+  ender_crystals_reflect_range: 5.0
+  ender_pearls_spawn_endermites: true
+  totem_nerfed: true
+  totem_regen_duration_1: 460
+  totem_regen_amplifier_1: 0
+  totem_regen_duration_2: 300
+  totem_regen_amplifier_2: 1
+  potion_side_effects: true
+  potion_side_effects_chance: 0.5
+  shield_durability_per_block: 67
+  enderman_block_break_on_teleport: true
+
+# 食物配置
+food:
+  raw_food_debuff: true
+  rotten_flesh_debuff: true
+  food_poisoning: true
+  food_poisoning_chance: 0.1
+  food_spoil: true
+  food_spoil_chance: 0.00166
+
+# 方块配置
+blocks:
+  stone_drop_with_pickaxe: true
+  stone_drop_chance_wooden: 0.5
+  stone_drop_chance_stone: 0.75
+  ore_drop_chance: true
+  ore_drop_chance_value: 0.5
+  hay_block_silk_touch: true
+  hay_block_to_wheat: 4
+  tnt_break_explodes: true
+  tnt_break_explodes_chance: 0.2
+  silverfish_spawn_from_stone: true
+  silverfish_spawn_chance: 0.1
+  endermite_spawn_from_end_stone: true
+  endermite_spawn_chance: 0.15
+  infested_stone_spawns_fangs: true
+  infested_stone_fangs_chance: 0.1
+
+# 村民配置
+villager:
+  trades_more_expensive: true
+  trade_multiplier: 2.0
+  bad_omen_on_village_enter: true
+  bad_omen_chance: 0.33
+
+# 结构配置
+structures:
+  desert_temple_husks: true
+  desert_temple_husk_count: 12
+  desert_temple_tnt: true
+  shipwrecks_guarded_by_drowned: true
+  shipwreck_drowned_count: 8
+  buried_treasure_guarded_by_vexes: true
+  buried_treasure_vex_count: 4
+  ruined_portal_illusioners: true
+  ruined_portal_illusioner_count: 4
+  jungle_temple_illusioners: true
+  jungle_temple_illusioner_count: 4
+
+# 流浪商人配置
+wandering_trader:
+  replace_with_pillagers: true
+  replace_with_ravager: true
+
+# 末影龙配置
+ender_dragon:
+  enabled: true
+  regen_chance_per_tick: 0.01
+  regen_amount: 1.0
