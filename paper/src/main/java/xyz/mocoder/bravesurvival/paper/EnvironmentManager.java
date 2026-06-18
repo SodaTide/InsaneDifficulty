@@ -6,6 +6,7 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.block.Block;
 import org.bukkit.entity.*;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
@@ -55,6 +56,62 @@ public class EnvironmentManager implements Listener {
     public void initialize() {
         Bukkit.getPluginManager().registerEvents(this, plugin);
         startVillagerGossipTask();
+        startDoorBreakInWaterTask();
+    }
+    
+    // ==================== 水中门破碎 ====================
+    
+    private void startDoorBreakInWaterTask() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!ConfigManager.getWorldConfig().has("doors_break_in_water") ||
+                    !ConfigManager.getWorldConfig().get("doors_break_in_water").getAsBoolean()) {
+                    return;
+                }
+                
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    Location loc = player.getLocation();
+                    
+                    // 检查脚下和周围的门方块
+                    for (int x = -1; x <= 1; x++) {
+                        for (int y = 0; y <= 1; y++) {
+                            for (int z = -1; z <= 1; z++) {
+                                if (x == 0 && y == 0 && z == 0) continue;
+                                
+                                Block block = loc.getBlock().getRelative(x, y, z);
+                                if (isDoor(block.getType()) && isBlockAdjacentToWater(block)) {
+                                    // 播放破坏音效
+                                    block.getWorld().playSound(block.getLocation(), 
+                                        org.bukkit.Sound.BLOCK_WOOD_BREAK, 1.0f, 1.0f);
+                                    // 破坏门
+                                    block.breakNaturally();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 10L); // 每10tick检查一次
+    }
+    
+    private boolean isDoor(Material type) {
+        return type.name().contains("DOOR") && !type.name().equals("IRON_DOOR") && !type.name().equals("IRON_TRAPDOOR");
+    }
+    
+    private boolean isBlockAdjacentToWater(Block block) {
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                for (int z = -1; z <= 1; z++) {
+                    if (x == 0 && y == 0 && z == 0) continue;
+                    Material adjType = block.getRelative(x, y, z).getType();
+                    if (adjType.name().contains("WATER")) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     // ==================== 天气系统复杂模式 ====================
@@ -402,36 +459,62 @@ public class EnvironmentManager implements Listener {
 
         Player player = event.getPlayer();
 
+        // 数据包逻辑: 睡眠跳过1/3夜晚
+        // 正常MC跳过整夜(约10000刻), 我们改为只跳过约3333刻(1/3)
+        // 通过设置游戏规则来延迟唤醒
         new BukkitRunnable() {
             @Override
             public void run() {
                 if (!player.isOnline() || !player.isSleeping()) return;
-
-                // 随机生成0-4只幻翼
-                int phantomCount = 0;
+                
+                // 数据包逻辑: 起床后50%概率每只幻翼
                 for (int i = 0; i < 4; i++) {
                     if (random.nextDouble() < 0.5) {
-                        phantomCount++;
-                    }
-                }
-
-                if (phantomCount > 0) {
-                    for (int i = 0; i < phantomCount; i++) {
                         Location spawnLoc = player.getLocation().clone().add(
                             random.nextInt(10) - 5,
-                            5,
+                            20,
                             random.nextInt(10) - 5
                         );
                         player.getWorld().spawnEntity(spawnLoc, EntityType.PHANTOM);
                     }
                 }
 
-                // 极度饥饿 等级127 持续5秒
+                // 数据包逻辑: hunger 5 127 (极度饥饿, 127级, 5秒), slowness 20 0 (缓慢, 20秒)
                 player.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 100, 127, false, false));
-                // 缓慢I 持续20秒
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 400, 0, false, false));
             }
-        }.runTaskLater(plugin, 100L);
+        }.runTaskLater(plugin, 125L);
+    }
+    
+    // ==================== 睡眠跳过1/3夜晚 ====================
+    
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerBedEnterForThirdNight(PlayerBedEnterEvent event) {
+        if (event.isCancelled()) return;
+        if (!ConfigManager.getWorldConfig().has("sleep_skips_third_of_night") ||
+            !ConfigManager.getWorldConfig().get("sleep_skips_third_of_night").getAsBoolean()) {
+            return;
+        }
+        
+        // 数据包逻辑: 睡眠只跳过1/3夜晚
+        // 正常MC会跳到白天(1000刻), 我们改为只前进约3333刻
+        // 设置时间增速为1/3，通过在玩家睡醒后调整时间实现
+        Player player = event.getPlayer();
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!player.isOnline()) return;
+                World world = player.getWorld();
+                long time = world.getTime();
+                // 夜晚范围: 12000-24000
+                // 只前进1/3的时间(3600刻)
+                if (time >= 12000 && time < 24000) {
+                    long newTime = time + 3600;
+                    if (newTime >= 24000) newTime = 24000;
+                    world.setTime(newTime);
+                }
+            }
+        }.runTaskLater(plugin, 95L); // 在幻翼生成之前执行
     }
 
     // ==================== 凋灵骷髅自定义属性 ====================

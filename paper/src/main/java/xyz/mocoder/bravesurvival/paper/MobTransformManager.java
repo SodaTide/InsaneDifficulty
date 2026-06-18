@@ -41,6 +41,64 @@ public class MobTransformManager implements Listener {
         startTransformationTask();
         startArrowTrackingTask();
         startWitherSkullTask();
+        startWitherSkeletonBlockBreakTask();
+    }
+
+    // ==================== 凋灵骷髅破坏方块 ====================
+    
+    private void startWitherSkeletonBlockBreakTask() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (World world : Bukkit.getWorlds()) {
+                    for (Entity entity : world.getEntities()) {
+                        if (entity instanceof WitherSkeleton skeleton) {
+                            if (!skeleton.isValid() || skeleton.isDead()) continue;
+                            
+                            // 查找5格内的玩家
+                            Player nearest = getNearestPlayer(skeleton.getLocation(), 5.0);
+                            if (nearest == null) continue;
+                            
+                            // 计算头部上方2.6格的位置
+                            Location headPos = skeleton.getLocation().add(0, 2.6, 0);
+                            // 往前进0.75格（根据朝向）
+                            org.bukkit.util.Vector direction = skeleton.getLocation().getDirection().normalize();
+                            headPos.add(direction.multiply(0.75));
+                            
+                            // 检查是否是保护方块
+                            Material blockType = headPos.getBlock().getType();
+                            if (isProtectedBlock(blockType)) continue;
+                            
+                            // 破坏方块并掉落物品
+                            headPos.getBlock().breakNaturally();
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 5L); // 每5tick检查一次
+    }
+    
+    private boolean isProtectedBlock(Material type) {
+        // 保护方块列表（与数据包一致）
+        return type == Material.BEDROCK || 
+               type == Material.BARRIER ||
+               type == Material.COMMAND_BLOCK ||
+               type == Material.REPEATING_COMMAND_BLOCK ||
+               type == Material.CHAIN_COMMAND_BLOCK ||
+               type == Material.STRUCTURE_BLOCK ||
+               type == Material.JIGSAW ||
+               type == Material.END_PORTAL ||
+               type == Material.END_GATEWAY ||
+               type == Material.SPAWNER ||
+               type == Material.DRAGON_EGG ||
+               type == Material.NETHERITE_BLOCK ||
+               type == Material.ANCIENT_DEBRIS ||
+               type == Material.OBSIDIAN ||
+               type == Material.CRYING_OBSIDIAN ||
+               type == Material.ENDER_CHEST ||
+               type == Material.BEACON ||
+               type == Material.ENCHANTING_TABLE ||
+               type == Material.END_PORTAL_FRAME;
     }
 
     // ==================== 变形定时任务 ====================

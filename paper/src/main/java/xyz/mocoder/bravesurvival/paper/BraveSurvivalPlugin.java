@@ -174,6 +174,14 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
             enhanceGhast(ghast, wrapper);
         } else if (entity instanceof IronGolem golem) {
             enhanceIronGolem(golem, wrapper);
+        } else if (entity instanceof Silverfish silverfish) {
+            // 银鱼：抗击退 + 快速 (数据包: knockback_resistance=1, speed=0.4)
+            wrapper.setKnockbackResistance(1.0);
+            wrapper.setMovementSpeed(0.4);
+        } else if (entity instanceof Endermite endermite) {
+            // 末影螨：抗击退 + 快速 (数据包: knockback_resistance=1, speed=0.4)
+            wrapper.setKnockbackResistance(1.0);
+            wrapper.setMovementSpeed(0.4);
         }
     }
 
@@ -832,7 +840,29 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
         if (event.getDamager() instanceof Stray && event.getEntity() instanceof Player player) {
             if (ConfigManager.getMobConfig("skeleton").has("stray_slowness") &&
                 ConfigManager.getMobConfig("skeleton").get("stray_slowness").getAsBoolean()) {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 200, 1, false, false));
+                // 数据包逻辑: slowness 5 4 (5秒, 4级=AMPLIFIER 4)
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 4, false, false));
+            }
+        }
+        
+        // 末影人攻击玩家后传送走
+        if (event.getDamager() instanceof Enderman enderman && event.getEntity() instanceof Player) {
+            if (ConfigManager.getMobConfig("enderman").has("teleport_after_hit") &&
+                ConfigManager.getMobConfig("enderman").get("teleport_after_hit").getAsBoolean()) {
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    try {
+                        if (enderman.isValid() && !enderman.isDead()) {
+                            // 数据包逻辑: spreadplayers, 0-24格随机, 对应高度
+                            Location eLoc = enderman.getLocation();
+                            double angle = random.nextDouble() * Math.PI * 2;
+                            double dist = 8 + random.nextDouble() * 16;
+                            double newX = eLoc.getX() + Math.cos(angle) * dist;
+                            double newZ = eLoc.getZ() + Math.sin(angle) * dist;
+                            int newY = eLoc.getWorld().getHighestBlockYAt((int)newX, (int)newZ) + 1;
+                            enderman.teleport(new Location(eLoc.getWorld(), newX, newY, newZ));
+                        }
+                    } catch (Exception e) {}
+                }, 5L);
             }
         }
     }
