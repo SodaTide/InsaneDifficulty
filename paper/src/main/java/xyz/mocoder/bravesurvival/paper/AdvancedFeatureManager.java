@@ -182,8 +182,9 @@ public class AdvancedFeatureManager implements Listener {
                     Block block = loc.getBlock().getRelative(x, y, z);
                     if (block.getType() == Material.MOSSY_STONE_BRICKS ||
                         block.getType() == Material.CHISELED_STONE_BRICKS) {
-                        // 检查是否在丛林生物群系
-                        if (loc.getBlock().getBiome().name().contains("JUNGLE")) {
+                        // 检查是否在丛林生物群系 - 使用现代API
+                        org.bukkit.NamespacedKey biomeKey = loc.getBlock().getBiome().getKey();
+                        if (biomeKey.getKey().contains("jungle")) {
                             return true;
                         }
                     }

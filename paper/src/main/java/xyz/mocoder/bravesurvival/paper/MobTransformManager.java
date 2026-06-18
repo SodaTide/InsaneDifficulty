@@ -402,7 +402,8 @@ public class MobTransformManager implements Listener {
             blaze.setGravity(false);
 
             try {
-                blaze.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(0.4);
+                // 数据包: generic.movement_speed base set 1 (line 1213)
+                blaze.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(1.0);
             } catch (Exception e) {}
 
             new BukkitRunnable() {

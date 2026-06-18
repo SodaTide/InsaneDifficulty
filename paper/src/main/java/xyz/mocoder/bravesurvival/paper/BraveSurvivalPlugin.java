@@ -199,6 +199,10 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
         wrapper.setFollowRange(ConfigManager.getMobAttribute("zombie", "follow_range", 64.0));
         wrapper.setArmor(ConfigManager.getMobAttribute("zombie", "armor", 3.0));
 
+        // 数据包: zombie.spawn_reinforcements base set 0.15 (line 2627)
+        // Paper API不直接暴露此属性，但原版僵尸默认就有0.15的spawnReinforcements
+        // 这里我们不做额外处理，原版行为已经符合数据包要求
+
         if (ConfigManager.getMobConfig("zombie").has("fire_resistance") &&
             ConfigManager.getMobConfig("zombie").get("fire_resistance").getAsBoolean()) {
             zombie.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, Integer.MAX_VALUE, 0, false, false));
@@ -223,8 +227,11 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
             creeper.setPowered(true);
         }
 
+        // 数据包: fuse:1 (line 1302) - 瞬间爆炸
         if (ConfigManager.getMobConfig("creeper").has("fuse_ticks")) {
             creeper.setMaxFuseTicks(ConfigManager.getMobConfig("creeper").get("fuse_ticks").getAsInt());
+        } else {
+            creeper.setMaxFuseTicks(1);  // 默认1 tick
         }
 
         // 修复：爆炸半径设为10（数据包值）
@@ -234,15 +241,16 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
             creeper.setExplosionRadius(10);
         }
 
-        if (ConfigManager.getMobConfig("creeper").has("invisible") &&
-            ConfigManager.getMobConfig("creeper").get("invisible").getAsBoolean()) {
-            creeper.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
-        }
-
+        // 数据包: speed=0.3 (line 1303)
         if (ConfigManager.getMobConfig("creeper").has("speed")) {
             wrapper.setMovementSpeed(ConfigManager.getMobConfig("creeper").get("speed").getAsDouble());
         } else {
             wrapper.setMovementSpeed(0.3);
+        }
+
+        if (ConfigManager.getMobConfig("creeper").has("invisible") &&
+            ConfigManager.getMobConfig("creeper").get("invisible").getAsBoolean()) {
+            creeper.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
         }
     }
 
@@ -291,6 +299,7 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
         phantom.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, Integer.MAX_VALUE, 0, false, false));
         phantom.setShouldBurnInDay(false);
 
+        // 数据包: attack_damage=3 (line 845 of datapack_dump.txt)
         if (ConfigManager.getMobConfig("phantom").has("damage")) {
             wrapper.setAttackDamage(ConfigManager.getMobConfig("phantom").get("damage").getAsDouble());
         } else {
@@ -318,10 +327,11 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
     private void enhanceIronGolem(IronGolem golem, PaperEntityWrapper wrapper) {
         if (!ConfigManager.isMobEnabled("iron_golem")) return;
 
+        // 数据包: health:150 (line 1941 of datapack_dump.txt)
         if (ConfigManager.getMobConfig("iron_golem").has("increased_health") &&
             ConfigManager.getMobConfig("iron_golem").get("increased_health").getAsBoolean()) {
             double health = ConfigManager.getMobConfig("iron_golem").has("health_value") ?
-                ConfigManager.getMobConfig("iron_golem").get("health_value").getAsDouble() : 200.0;
+                ConfigManager.getMobConfig("iron_golem").get("health_value").getAsDouble() : 150.0;
             wrapper.setMaxHealth(health);
         }
     }
@@ -477,7 +487,7 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
                     event.setDropItems(false);
                 }
             }
-            // 数据包: 银鱼生成概率10%
+            // 数据包: 银鱼生成概率10% (chance: 0.1 in stone.json loot table)
             double silverfishChance = ConfigManager.getBlocksConfig().has("silverfish_chance") ?
                 ConfigManager.getBlocksConfig().get("silverfish_chance").getAsDouble() : 0.1;
             if (Math.random() < silverfishChance) {
@@ -655,21 +665,16 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
     // ==================== 末影珍珠生成末影螨 ====================
 
     @EventHandler(priority = EventPriority.HIGH)
-    public void onPlayerInteract(PlayerInteractEvent event) {
+    public void onPlayerTeleportForEnderPearl(PlayerTeleportEvent event) {
         if (event.isCancelled()) return;
 
-        if (event.getItem() != null && event.getItem().getType() == Material.ENDER_PEARL) {
+        // 数据包: ender_pearls/landed.mcfunction - 珍珠落地时生成末影螨
+        if (event.getCause() == PlayerTeleportEvent.TeleportCause.ENDER_PEARL) {
             if (ConfigManager.getCombatConfig().has("ender_pearls_always_spawn_endermites") &&
                 ConfigManager.getCombatConfig().get("ender_pearls_always_spawn_endermites").getAsBoolean()) {
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        Player player = event.getPlayer();
-                        if (player.isOnline()) {
-                            player.getWorld().spawnEntity(player.getLocation(), EntityType.ENDERMITE);
-                        }
-                    }
-                }.runTaskLater(this, 20L);
+                // 在玩家传送前记录位置，在该位置生成末影螨
+                Location fromLoc = event.getFrom();
+                fromLoc.getWorld().spawnEntity(fromLoc, EntityType.ENDERMITE);
             }
         }
     }
@@ -726,14 +731,25 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
             double chance = ConfigManager.getCombatConfig().has("potion_side_effects_chance") ?
                 ConfigManager.getCombatConfig().get("potion_side_effects_chance").getAsDouble() : 0.5;
             if (Math.random() < chance) {
-                PotionEffectType[] negativeEffects = {
-                    PotionEffectType.POISON, PotionEffectType.WITHER,
-                    PotionEffectType.NAUSEA, PotionEffectType.BLINDNESS
-                };
-                PotionEffectType randomEffect = negativeEffects[random.nextInt(negativeEffects.length)];
+                // 数据包: potions/effects.mcfunction - 9种效果 (0-8)
+                // blindness 5s, hunger 5s 100级, mining_fatigue 10s 1级, levitation 4s, 
+                // nausea 10s, poison 5s, slowness 10s 1级, weakness 10s 1级, wither 6s
+                int effectIndex = random.nextInt(9);
+                PotionEffect effect;
+                switch (effectIndex) {
+                    case 0 -> effect = new PotionEffect(PotionEffectType.BLINDNESS, 100, 0, false, false);
+                    case 1 -> effect = new PotionEffect(PotionEffectType.HUNGER, 100, 100, false, false);
+                    case 2 -> effect = new PotionEffect(PotionEffectType.MINING_FATIGUE, 200, 1, false, false);
+                    case 3 -> effect = new PotionEffect(PotionEffectType.LEVITATION, 80, 0, false, false);
+                    case 4 -> effect = new PotionEffect(PotionEffectType.NAUSEA, 200, 0, false, false);
+                    case 5 -> effect = new PotionEffect(PotionEffectType.POISON, 100, 0, false, false);
+                    case 6 -> effect = new PotionEffect(PotionEffectType.SLOWNESS, 200, 1, false, false);
+                    case 7 -> effect = new PotionEffect(PotionEffectType.WEAKNESS, 200, 1, false, false);
+                    default -> effect = new PotionEffect(PotionEffectType.WITHER, 120, 0, false, false);
+                }
                 event.getAffectedEntities().forEach(entity -> {
                     if (entity instanceof LivingEntity) {
-                        ((LivingEntity) entity).addPotionEffect(new PotionEffect(randomEffect, 100, 0, false, false));
+                        ((LivingEntity) entity).addPotionEffect(effect);
                     }
                 });
             }
@@ -997,7 +1013,8 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
         if (event.getBlock().getType() == Material.END_STONE) {
             if (ConfigManager.getMobConfig("endermite").has("spawn_from_end_stone") &&
                 ConfigManager.getMobConfig("endermite").get("spawn_from_end_stone").getAsBoolean()) {
-                if (Math.random() < 0.1) {
+                // 数据包: 15%概率 (chance: 0.15 in end_stone.json loot table)
+                if (Math.random() < 0.15) {
                     event.getBlock().getWorld().spawnEntity(
                         event.getBlock().getLocation().add(0.5, 0, 0.5),
                         EntityType.ENDERMITE

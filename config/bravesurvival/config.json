@@ -61,7 +61,7 @@
     "phantom": {
       "enabled": true,
       "burn_in_daylight": false,
-      "damage": 9.0
+      "damage": 3.0
     },
     "guardian": {
       "enabled": true,
@@ -82,7 +82,7 @@
       "enabled": true,
       "attack_players": true,
       "increased_health": true,
-      "health_value": 200.0,
+      "health_value": 150.0,
       "jump_explosion": true,
       "smash_attack": true,
       "smash_chance": 0.015
@@ -90,7 +90,7 @@
     "blaze": {
       "enabled": true,
       "no_gravity": true,
-      "speed": 0.4,
+      "speed": 1.0,
       "fire_trail": true,
       "fire_resistance": true
     },
@@ -244,7 +244,7 @@
     "cauldron_dries_in_nether": true
   },
   "blocks": {
-    "silverfish_chance": 0.0625,
+    "silverfish_chance": 0.1,
     "silverfish_blocks": [
       "minecraft:stone",
       "minecraft:sandstone",

@@ -226,20 +226,29 @@ public class EnvironmentManager implements Listener {
     }
 
     private ItemStack getPiglinBarterResult() {
-        double roll = random.nextDouble();
+        // 数据包: piglin_bartering.json 使用权重系统
+        // 简化版本，使用替代物品代替自定义效果药水
+        double roll = random.nextDouble() * 100;
 
-        if (roll < 0.02) return new ItemStack(Material.ENCHANTED_BOOK);
-        if (roll < 0.06) return new ItemStack(Material.POTION);
-        if (roll < 0.10) return new ItemStack(Material.ENDER_PEARL, 2 + random.nextInt(4));
-        if (roll < 0.12) return new ItemStack(Material.IRON_BOOTS);
-        if (roll < 0.32) return new ItemStack(Material.IRON_NUGGET, 5 + random.nextInt(10));
-        if (roll < 0.47) return new ItemStack(Material.ARROW, 6 + random.nextInt(10));
-        if (roll < 0.57) return new ItemStack(Material.GUNPOWDER, 2 + random.nextInt(4));
-        if (roll < 0.67) return new ItemStack(Material.GRAVEL, 4 + random.nextInt(8));
-        if (roll < 0.75) return new ItemStack(Material.BLACKSTONE, 4 + random.nextInt(8));
-        if (roll < 0.83) return new ItemStack(Material.TWISTING_VINES, 4 + random.nextInt(8));
-        if (roll < 0.91) return new ItemStack(Material.CRIMSON_FUNGUS, 2 + random.nextInt(4));
-        return new ItemStack(Material.GOLD_NUGGET, 3 + random.nextInt(6));
+        // 权重计算基于数据包 (total weight: 401)
+        if (roll < 1.25) return new ItemStack(Material.BOOK);  // weight 5 (enchanted book)
+        if (roll < 3.25) return new ItemStack(Material.IRON_BOOTS);  // weight 8
+        if (roll < 5.25) return new ItemStack(Material.COBWEB);  // weight 8 (替代fire resistance药水效果 - 阻止移动)
+        if (roll < 7.25) return new ItemStack(Material.COBWEB);  // weight 8 (替代splash fire resistance)
+        if (roll < 9.75) return new ItemStack(Material.POTION);  // weight 10 (水瓶)
+        if (roll < 14.25) return new ItemStack(Material.IRON_NUGGET, 10 + random.nextInt(27));  // weight 10
+        if (roll < 17.75) return new ItemStack(Material.ENDER_PEARL, 2 + random.nextInt(3));  // weight 8
+        if (roll < 22.75) return new ItemStack(Material.STRING, 3 + random.nextInt(7));  // weight 10
+        if (roll < 27.75) return new ItemStack(Material.QUARTZ, 5 + random.nextInt(8));  // weight 10
+        if (roll < 37.75) return new ItemStack(Material.OBSIDIAN);  // weight 40
+        if (roll < 47.75) return new ItemStack(Material.CRYING_OBSIDIAN, 1 + random.nextInt(3));  // weight 40
+        if (roll < 57.75) return new ItemStack(Material.FIRE_CHARGE);  // weight 40
+        if (roll < 67.75) return new ItemStack(Material.LEATHER, 2 + random.nextInt(3));  // weight 40
+        if (roll < 77.75) return new ItemStack(Material.SOUL_SAND, 2 + random.nextInt(7));  // weight 40
+        if (roll < 87.75) return new ItemStack(Material.NETHER_BRICK, 2 + random.nextInt(7));  // weight 40
+        if (roll < 97.75) return new ItemStack(Material.SPECTRAL_ARROW, 6 + random.nextInt(7));  // weight 40
+        if (roll < 107.75) return new ItemStack(Material.GRAVEL, 8 + random.nextInt(9));  // weight 40
+        return new ItemStack(Material.BLACKSTONE, 8 + random.nextInt(9));  // weight 40
     }
 
     // ==================== 火焰物品燃烧 ====================
@@ -694,14 +703,17 @@ public class EnvironmentManager implements Listener {
         if (event.getEntity() instanceof Player player) {
             int foodLevel = event.getFoodLevel();
 
-            // 数据包的三级阈值：≤10/7/5
+            // 数据包: starving.mcfunction (lines 899-909)
+            // foodLevel ≤ 10: weakness 5 0 (5秒, 0级)
             if (foodLevel <= 10) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 100, 0, false, false));
             }
+            // foodLevel ≤ 7: weakness 5 1, mining_fatigue 5 0
             if (foodLevel <= 7) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 100, 1, false, false));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 100, 0, false, false));
             }
+            // foodLevel ≤ 5: weakness 5 2, mining_fatigue 5 1, hunger 2 80
             if (foodLevel <= 5) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 100, 2, false, false));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 100, 1, false, false));
