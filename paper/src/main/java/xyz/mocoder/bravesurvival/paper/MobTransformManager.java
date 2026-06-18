@@ -6,6 +6,7 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.block.Block;
 import org.bukkit.entity.*;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
@@ -18,6 +19,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import xyz.mocoder.bravesurvival.core.config.ConfigManager;
 
 import java.util.Random;
 
@@ -42,6 +44,10 @@ public class MobTransformManager implements Listener {
         startArrowTrackingTask();
         startWitherSkullTask();
         startWitherSkeletonBlockBreakTask();
+        startEndCrystalProjectileReflectionTask();
+        startBlazeFireballTrailTask();
+        startPlayerOnFireTrailTask();
+        startAngryMobTask();
     }
 
     // ==================== 凋灵骷髅破坏方块 ====================
@@ -215,13 +221,26 @@ public class MobTransformManager implements Listener {
         skull.setShooter(witch);
     }
 
-    // ==================== 被动生物敌对化 ====================
+    // ==================== 被动生物敌对化 + 追踪范围提升 ====================
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onCreatureSpawnForHostile(CreatureSpawnEvent event) {
         if (event.isCancelled()) return;
 
         Location loc = event.getLocation();
+        LivingEntity entity = event.getEntity();
+
+        // 数据包: increased_follow_range - 所有怪物追踪范围设为32
+        if (hasIncreasedFollowRange(entity)) {
+            try {
+                Attribute attr = org.bukkit.Registry.ATTRIBUTE.get(
+                    org.bukkit.NamespacedKey.minecraft("generic.follow_range")
+                );
+                if (attr != null) {
+                    entity.getAttribute(attr).setBaseValue(32.0);
+                }
+            } catch (Exception e) {}
+        }
 
         if (event.getEntity() instanceof Wolf wolf) {
             if (hasPlayerNearby(loc, 16.0)) {
@@ -692,5 +711,198 @@ public class MobTransformManager implements Listener {
             }
         }
         return nearest;
+    }
+
+    // ==================== 末影水晶反射弹射物（tick级别）====================
+    // 数据包: end_crystal_proj_prot.mcfunction
+    // 末影水晶5格内反射arrows, snowball, egg, trident, ender_pearl
+
+    private void startEndCrystalProjectileReflectionTask() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!ConfigManager.getCombatConfig().has("ender_crystals_reflect_projectiles") ||
+                    !ConfigManager.getCombatConfig().get("ender_crystals_reflect_projectiles").getAsBoolean()) {
+                    return;
+                }
+                double range = ConfigManager.getCombatConfig().has("ender_crystals_reflect_range") ?
+                    ConfigManager.getCombatConfig().get("ender_crystals_reflect_range").getAsDouble() : 5.0;
+                for (World world : Bukkit.getWorlds()) {
+                    for (Entity crystal : world.getEntitiesByClass(EnderCrystal.class)) {
+                        for (Entity nearby : crystal.getNearbyEntities(range, range, range)) {
+                            if (nearby instanceof org.bukkit.entity.Projectile projectile &&
+                                !(nearby instanceof org.bukkit.entity.Fireball) && // 排除火球
+                                !projectile.getScoreboardTags().contains("end_crystal_proj_prot")) {
+                                // 反转速度方向 (multiply by -1)
+                                Vector velocity = projectile.getVelocity();
+                                projectile.setVelocity(new Vector(-velocity.getX(), -velocity.getY(), -velocity.getZ()));
+                                // 标记防止重复反射
+                                projectile.addScoreboardTag("end_crystal_proj_prot");
+                            }
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 10L, 2L); // 每2tick检查一次
+    }
+
+    // ==================== 烈焰人小火球地面生火 ====================
+    // 数据包: blazes/main4.mcfunction - 小火球落地留下火迹，递归向下
+
+    private void startBlazeFireballTrailTask() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (World world : Bukkit.getWorlds()) {
+                    for (Entity smallFireball : world.getEntitiesByClass(org.bukkit.entity.SmallFireball.class)) {
+                        Location loc = smallFireball.getLocation();
+                        Block block = loc.getBlock();
+                        if (block.getType() == Material.AIR) {
+                            block.setType(Material.FIRE);
+                        }
+                        // 递归向下检查并生火 (数据包: blazes/fire.mcfunction)
+                        // fire_air tag: 包含air, grass, dead_bush等，简单起见只检查air
+                        Block below = block.getRelative(0, -1, 0);
+                        if (below.getType() == Material.AIR) {
+                            below.setType(Material.FIRE);
+                        }
+                    }
+                    // 烈焰人脚下生火（4tick循环）
+                    for (Entity blaze : world.getEntitiesByClass(Blaze.class)) {
+                        Block block = blaze.getLocation().getBlock();
+                        if (block.getType() == Material.AIR) {
+                            block.setType(Material.FIRE);
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 10L, 4L); // 数据包: 每4tick
+    }
+
+    // ==================== 玩家着火时脚下生火 ====================
+    // 数据包: blazes/player_fire.mcfunction
+    // 玩家着火时脚下生成火并给weakness
+
+    private void startPlayerOnFireTrailTask() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (World world : Bukkit.getWorlds()) {
+                    for (Player player : world.getPlayers()) {
+                        if (player.getFireTicks() > 0) {
+                            Block block = player.getLocation().getBlock();
+                            if (block.getType() == Material.AIR) {
+                                block.setType(Material.FIRE);
+                            }
+                            // 玩家着火时weakness 10 0 (10秒, 0级)
+                            player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 200, 0, false, false));
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 10L, 10L); // 每10tick（0.5秒）
+    }
+
+    // ==================== 中立生物敌对化 ====================
+    // 数据包: angry.mcfunction
+    // 狼、蜜蜂、铁傀儡、北极熊、末影人16格内持续anger
+    // 僵尸猪灵32格内持续anger
+    // 猪灵对未穿金甲的玩家angry
+
+    private void startAngryMobTask() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (World world : Bukkit.getWorlds()) {
+                    // 狼
+                    for (Entity e : world.getEntitiesByClass(Wolf.class)) {
+                        Wolf wolf = (Wolf) e;
+                        if (!wolf.isAngry()) {
+                            Player nearest = getNearestPlayer(wolf.getLocation(), 16.0);
+                            if (nearest != null) wolf.setAngry(true);
+                        }
+                    }
+                    // 蜜蜂
+                    for (Entity e : world.getEntitiesByClass(Bee.class)) {
+                        Bee bee = (Bee) e;
+                        if (bee.getAnger() <= 0) {
+                            Player nearest = getNearestPlayer(bee.getLocation(), 16.0);
+                            if (nearest != null) bee.setAnger(200);
+                        }
+                    }
+                    // 北极熊
+                    for (Entity e : world.getEntitiesByClass(PolarBear.class)) {
+                        PolarBear bear = (PolarBear) e;
+                        if (bear.getTarget() == null) {
+                            Player nearest = getNearestPlayer(bear.getLocation(), 16.0);
+                            if (nearest != null) bear.setTarget(nearest);
+                        }
+                    }
+                    // 末影人
+                    for (Entity e : world.getEntitiesByClass(Enderman.class)) {
+                        Enderman enderman = (Enderman) e;
+                        if (enderman.getTarget() == null) {
+                            Player nearest = getNearestPlayer(enderman.getLocation(), 16.0);
+                            if (nearest != null) enderman.setTarget(nearest);
+                        }
+                    }
+                    // 僵尸猪灵
+                    for (Entity e : world.getEntitiesByClass(PigZombie.class)) {
+                        PigZombie pigZombie = (PigZombie) e;
+                        if (!pigZombie.isAngry()) {
+                            Player nearest = getNearestPlayer(pigZombie.getLocation(), 32.0);
+                            if (nearest != null) {
+                                pigZombie.setAngry(true);
+                                pigZombie.setAnger(200);
+                            }
+                        }
+                    }
+                    // 猪灵 - 对未穿金甲的玩家aggressive
+                    for (Entity e : world.getEntitiesByClass(Piglin.class)) {
+                        Piglin piglin = (Piglin) e;
+                        for (Player player : piglin.getLocation().getWorld().getPlayers()) {
+                            if (player.getLocation().distance(piglin.getLocation()) <= 16.0) {
+                                if (!isWearingFullGold(player)) {
+                                    // 猪灵使用setTarget来攻击玩家
+                                    piglin.setTarget(player);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 10L); // 每10tick
+    }
+
+    private boolean isWearingFullGold(Player player) {
+        org.bukkit.inventory.PlayerInventory inv = player.getInventory();
+        return inv.getHelmet() != null && inv.getHelmet().getType() == Material.GOLDEN_HELMET
+            && inv.getChestplate() != null && inv.getChestplate().getType() == Material.GOLDEN_CHESTPLATE
+            && inv.getLeggings() != null && inv.getLeggings().getType() == Material.GOLDEN_LEGGINGS
+            && inv.getBoots() != null && inv.getBoots().getType() == Material.GOLDEN_BOOTS;
+    }
+
+    // 数据包: increased_follow_range tag中的所有生物
+    private boolean hasIncreasedFollowRange(LivingEntity entity) {
+        if (entity instanceof Bee || entity instanceof Blaze || entity instanceof CaveSpider ||
+            entity instanceof Creeper || entity instanceof ElderGuardian ||
+            entity instanceof EnderDragon || entity instanceof Enderman ||
+            entity instanceof Endermite || entity instanceof Evoker ||
+            entity instanceof Ghast || entity instanceof Guardian ||
+            entity instanceof Hoglin || entity instanceof Illusioner ||
+            entity instanceof IronGolem || entity instanceof MagmaCube ||
+            entity instanceof Panda || entity instanceof Phantom ||
+            entity instanceof Piglin || entity instanceof Pillager ||
+            entity instanceof PolarBear || entity instanceof Ravager ||
+            entity instanceof Shulker || entity instanceof Silverfish ||
+            entity instanceof Skeleton || entity instanceof Slime ||
+            entity instanceof Snowman || entity instanceof Spider ||
+            entity instanceof Stray || entity instanceof Vex ||
+            entity instanceof Vindicator || entity instanceof Witch ||
+            entity instanceof Wither || entity instanceof WitherSkeleton ||
+            entity instanceof Wolf || entity instanceof Zoglin) {
+            return true;
+        }
+        return false;
     }
 }

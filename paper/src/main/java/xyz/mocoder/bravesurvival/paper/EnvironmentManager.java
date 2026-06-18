@@ -402,43 +402,24 @@ public class EnvironmentManager implements Listener {
         }
     }
 
-    // ==================== 熔炼时间加倍（修复干海带特殊时间）====================
+    // ==================== 正常熔炉熔炼时间加倍（数据包: smelting cookingtime 200→400）====================
+    // 数据包逻辑: 所有普通熔炉(FURNACE)的cookingtime从200翻倍到400
+    // 而高炉(BLAST_FURNACE)和烟熏炉(SMOKER)保持200不变
+
+    private static final int NORMAL_FURNACE_COOK_TIME = 400; // 普通熔炉: 200 → 400
+    private static final int SLOWED_RECIPES = 400;           // 用于对比的值
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onFurnaceSmelt(FurnaceSmeltEvent event) {
         if (event.isCancelled()) return;
 
-        // 干海带熔炼时间翻倍（400→800 ticks）
-        // Paper API没有直接设置熔炼时间的方法
-        // 通过取消原smelt并延迟重新触发来实现
-        if (event.getSource().getType() == Material.KELP) {
-            event.setCancelled(true);
-            // 延迟40tick（2秒）后重新触发熔炼
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    org.bukkit.block.Block block = event.getBlock();
-                    if (block.getType() == Material.FURNACE ||
-                        block.getType() == Material.SMOKER) {
-                        org.bukkit.block.Furnace furnace = (org.bukkit.block.Furnace) block.getState();
-                        furnace.setBurnTime((short)200); // 保持燃料燃烧
-                        furnace.update();
-                    }
-                }
-            }.runTaskLater(plugin, 40L);
+        if (event.getBlock().getType() == Material.FURNACE) {
+            org.bukkit.block.Furnace furnace = (org.bukkit.block.Furnace) event.getBlock().getState();
+            // 将CookTimeTotal设为400 (原版是200)
+            furnace.setCookTimeTotal(NORMAL_FURNACE_COOK_TIME);
+            furnace.update();
         }
-    }
-
-    @EventHandler(priority = EventPriority.HIGH)
-    public void onFurnaceBurn(FurnaceBurnEvent event) {
-        if (event.isCancelled()) return;
-
-        // 所有熔炉燃料时间翻倍
-        if (event.getBlock().getType() == Material.FURNACE ||
-            event.getBlock().getType() == Material.BLAST_FURNACE ||
-            event.getBlock().getType() == Material.SMOKER) {
-            event.setBurnTime(event.getBurnTime() * 2);
-        }
+        // 高炉和烟熏炉: 保持200不变，不做修改
     }
 
     // ==================== 干草块→小麦配方 ====================
@@ -534,6 +515,16 @@ public class EnvironmentManager implements Listener {
 
             witherSkeleton.getEquipment().setItemInMainHand(new ItemStack(Material.STONE_SWORD));
             witherSkeleton.getEquipment().setItemInOffHand(new ItemStack(Material.STONE_PICKAXE));
+
+            // 数据包: 20%几率生成witch
+            if (random.nextDouble() < 0.20) {
+                Location spawnLoc = witherSkeleton.getLocation().add(
+                    random.nextDouble() * 4 - 2,
+                    0,
+                    random.nextDouble() * 4 - 2
+                );
+                witherSkeleton.getWorld().spawn(spawnLoc, Witch.class);
+            }
         }
     }
 
@@ -592,6 +583,7 @@ public class EnvironmentManager implements Listener {
     }
 
     // ==================== 黑曜石挖掘：饥饿255 ====================
+    // 数据包: obsidian.mcfunction - hunger 1 255 (1 tick, 255级)
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onBlockBreakForObsidian(BlockBreakEvent event) {
@@ -599,8 +591,8 @@ public class EnvironmentManager implements Listener {
 
         if (event.getBlock().getType() == Material.OBSIDIAN ||
             event.getBlock().getType() == Material.CRYING_OBSIDIAN) {
-            event.getPlayer().addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 600, 254));
-            event.getPlayer().sendMessage("§c挖掘黑曜石让你极度饥饿！");
+            // 数据包: hunger 1 255 (1 tick = 1秒, 255级)
+            event.getPlayer().addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 1, 255, false, false));
         }
     }
 

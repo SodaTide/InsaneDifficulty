@@ -14,6 +14,8 @@ import org.bukkit.event.vehicle.*;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.meta.Damageable;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.Material;
 import org.bukkit.GameRule;
 import org.bukkit.potion.PotionEffect;
@@ -414,7 +416,8 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
 
             if (event.getCause() == EntityDamageEvent.DamageCause.CONTACT) {
                 if (ConfigManager.isCactusPoison()) {
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 1, false, false));
+                    // 数据包: cactus.mcfunction - poison 2 10 (2秒, 10级)
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 40, 10, false, false));
                 }
             }
         }
@@ -451,6 +454,37 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
         if (event.getBlock().getType() == Material.TNT) {
             if (Math.random() < MobEnhancer.getTntBreakExplodesChance()) {
                 event.getBlock().getWorld().createExplosion(event.getBlock().getLocation(), 4.0F, true);
+            }
+        }
+
+        // 数据包: stone.json loot table - 木镐50%, 石镐75%, 铁镐+ 100%掉落
+        if (event.getBlock().getType() == Material.STONE || event.getBlock().getType() == Material.COBBLESTONE) {
+            if (ConfigManager.getBlocksConfig().has("stone_drop_with_pickaxe") &&
+                ConfigManager.getBlocksConfig().get("stone_drop_with_pickaxe").getAsBoolean()) {
+                ItemStack tool = event.getPlayer().getInventory().getItemInMainHand();
+                double dropChance = 0.0;
+                if (tool.getType() == Material.WOODEN_PICKAXE) {
+                    dropChance = 0.5;
+                } else if (tool.getType() == Material.STONE_PICKAXE) {
+                    dropChance = 0.75;
+                } else if (tool.getType() == Material.IRON_PICKAXE ||
+                           tool.getType() == Material.GOLDEN_PICKAXE ||
+                           tool.getType() == Material.DIAMOND_PICKAXE ||
+                           tool.getType() == Material.NETHERITE_PICKAXE) {
+                    dropChance = 1.0;
+                }
+                if (dropChance > 0.0 && Math.random() > dropChance) {
+                    event.setDropItems(false);
+                }
+            }
+            // 数据包: 银鱼生成概率10%
+            double silverfishChance = ConfigManager.getBlocksConfig().has("silverfish_chance") ?
+                ConfigManager.getBlocksConfig().get("silverfish_chance").getAsDouble() : 0.1;
+            if (Math.random() < silverfishChance) {
+                event.getBlock().getWorld().spawnEntity(
+                    event.getBlock().getLocation().add(0.5, 0, 0.5),
+                    EntityType.SILVERFISH
+                );
             }
         }
 
@@ -662,6 +696,7 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
     }
 
     // ==================== 图腾削弱 ====================
+    // 数据包逻辑: truncation regeneration: clear regeneration, then give 23s level 0 + 15s level 1
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityResurrect(EntityResurrectEvent event) {
@@ -670,9 +705,12 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
         if (ConfigManager.getCombatConfig().has("totem_nerfed_drop") &&
             ConfigManager.getCombatConfig().get("totem_nerfed_drop").getAsBoolean()) {
             if (event.getEntity() instanceof Player player) {
+                // 数据包逻辑：先清除原版regeneration，再施加削弱版效果
                 player.removePotionEffect(PotionEffectType.REGENERATION);
-                player.removePotionEffect(PotionEffectType.ABSORPTION);
-                player.removePotionEffect(PotionEffectType.FIRE_RESISTANCE);
+                // regeneration 23 seconds, level 0 (amplifier 0)
+                player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 460, 0, false, false));
+                // regeneration 15 seconds, level 1 (amplifier 1) - stacked on top
+                player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 300, 1, false, false));
             }
         }
     }
@@ -725,15 +763,43 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
     }
 
     // ==================== 盾牌耐久度 ====================
+    // 数据包逻辑: shield_block.mcfunction - 每次格挡增加67点损耗，分5个阶段
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerItemDamage(PlayerItemDamageEvent event) {
         if (event.isCancelled()) return;
 
         if (event.getItem().getType() == Material.SHIELD) {
-            if (ConfigManager.getItemsConfig().has("shield_durability_multiplier")) {
-                double multiplier = ConfigManager.getItemsConfig().get("shield_durability_multiplier").getAsDouble();
-                event.setDamage((int) (event.getDamage() * multiplier));
+            ItemMeta meta = event.getItem().getItemMeta();
+            if (meta != null && meta instanceof Damageable damageable) {
+                int currentDamage = damageable.getDamage();
+                int newDamage;
+                // 数据包逻辑：0-66 → 67, 67-133 → 134, 134-200 → 201, 201-267 → 268, 268-334 → 335
+                if (currentDamage >= 0 && currentDamage <= 66) {
+                    newDamage = 67;
+                } else if (currentDamage >= 67 && currentDamage <= 133) {
+                    newDamage = 134;
+                } else if (currentDamage >= 134 && currentDamage <= 200) {
+                    newDamage = 201;
+                } else if (currentDamage >= 201 && currentDamage <= 267) {
+                    newDamage = 268;
+                } else if (currentDamage >= 268 && currentDamage <= 334) {
+                    newDamage = 335;
+                } else {
+                    // 超过334时继续使用event原始damage
+                    newDamage = currentDamage + event.getDamage();
+                }
+                event.setDamage(newDamage - currentDamage);
+                // 播放数据包中的fox sniff音效（仅在增加损耗时播放）
+                if (newDamage > currentDamage) {
+                    org.bukkit.Sound[] sniffSounds = {
+                        org.bukkit.Sound.ENTITY_FOX_SNIFF,
+                        org.bukkit.Sound.ENTITY_FOX_SNIFF
+                    };
+                    for (org.bukkit.Sound sound : sniffSounds) {
+                        event.getPlayer().playSound(event.getPlayer().getLocation(), sound, 1.0f, 1.0f);
+                    }
+                }
             }
         }
     }
@@ -836,14 +902,15 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
         if (event.getDamager() instanceof Husk && event.getEntity() instanceof Player player) {
             if (ConfigManager.getMobConfig("zombie").has("husk_hunger") &&
                 ConfigManager.getMobConfig("zombie").get("husk_hunger").getAsBoolean()) {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 200, 1, false, false));
+                // 数据包: hunger 15 50 (15秒, 50级 = amplifier 50)
+                player.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, 300, 50, false, false));
             }
         }
 
         if (event.getDamager() instanceof Stray && event.getEntity() instanceof Player player) {
             if (ConfigManager.getMobConfig("skeleton").has("stray_slowness") &&
                 ConfigManager.getMobConfig("skeleton").get("stray_slowness").getAsBoolean()) {
-                // 数据包逻辑: slowness 5 4 (5秒, 4级=AMPLIFIER 4)
+                // 数据��逻辑: slowness 5 4 (5秒, 4级=AMPLIFIER 4)
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 4, false, false));
             }
         }

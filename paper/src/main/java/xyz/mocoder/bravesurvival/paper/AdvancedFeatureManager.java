@@ -118,6 +118,8 @@ public class AdvancedFeatureManager implements Listener {
                 return detectJunglePyramid(location);
             case "buried_treasure":
                 return detectBuriedTreasure(location);
+            case "village":
+                return detectVillage(location);
             default:
                 return false;
         }
@@ -209,6 +211,30 @@ public class AdvancedFeatureManager implements Listener {
         return false;
     }
 
+    private boolean detectVillage(Location loc) {
+        // 村庄特征：床+钟+工作站点
+        for (int x = -30; x <= 30; x++) {
+            for (int z = -30; z <= 30; z++) {
+                for (int y = -3; y <= 5; y++) {
+                    Block block = loc.getBlock().getRelative(x, y, z);
+                    if (block.getType() == Material.RED_BED ||
+                        block.getType() == Material.BELL ||
+                        block.getType() == Material.CARTOGRAPHY_TABLE ||
+                        block.getType() == Material.FLETCHING_TABLE ||
+                        block.getType() == Material.SMITHING_TABLE ||
+                        block.getType() == Material.GRINDSTONE ||
+                        block.getType() == Material.BARREL ||
+                        block.getType() == Material.SMOKER ||
+                        block.getType() == Material.BLAST_FURNACE ||
+                        block.getType() == Material.CAMPFIRE) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     // ==================== 结构守卫（修复版）====================
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -239,6 +265,34 @@ public class AdvancedFeatureManager implements Listener {
         // 丛林神殿幻术师守卫
         if (isInStructure(loc, "jungle_pyramid")) {
             spawnJunglePyramidGuards(loc, player);
+        }
+
+        // 村庄进入获得不祥之兆 (33% 几率)
+        if (isInStructure(loc, "village")) {
+            if (plugin.getConfigManager().getCombatConfig().has("bad_omen_on_village_enter") &&
+                plugin.getConfigManager().getCombatConfig().get("bad_omen_on_village_enter").getAsBoolean()) {
+                // 检查16格范围内是否有村民
+                boolean hasVillager = false;
+                for (Entity e : player.getNearbyEntities(16, 16, 16)) {
+                    if (e instanceof Villager) {
+                        hasVillager = true;
+                        break;
+                    }
+                }
+                if (hasVillager && !player.getScoreboardTags().contains("expert_dif_village_entered")) {
+                    player.addScoreboardTag("expert_dif_village_entered");
+                    // 33% 几率获得不祥之兆
+                    if (random.nextDouble() < 0.33) {
+                        player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                            org.bukkit.potion.PotionEffectType.BAD_OMEN,
+                            6000, // 5分钟
+                            0,
+                            true,
+                            false
+                        ));
+                    }
+                }
+            }
         }
     }
 
