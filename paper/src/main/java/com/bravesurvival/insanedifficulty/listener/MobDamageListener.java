@@ -37,17 +37,39 @@ public class MobDamageListener implements Listener {
     }
 
     private ItemStack getRandomBarterItem() {
-        int roll = RNG.range(0, 99);
-        if (roll < 5) return new ItemStack(Material.BOOK); // 灵魂疾行附魔书
-        if (roll < 13) return new ItemStack(Material.IRON_BOOTS); // 铁靴子
-        if (roll < 21) return new ItemStack(Material.POTION); // 抗火药水
-        if (roll < 29) return new ItemStack(Material.SPLASH_POTION); // 喷溅抗火药水
-        if (roll < 39) return new ItemStack(Material.POTION); // 水瓶
-        if (roll < 49) return new ItemStack(Material.IRON_NUGGET, RNG.range(10, 36));
-        if (roll < 59) return new ItemStack(Material.ENDER_PEARL, RNG.range(2, 4));
-        if (roll < 79) return new ItemStack(Material.STRING, RNG.range(3, 9));
-        if (roll < 99) return new ItemStack(Material.QUARTZ, RNG.range(5, 12));
-        return new ItemStack(Material.OBSIDIAN);
+        // 权重表完全匹配数据包 piglin_bartering.json
+        // 总权重 = 441
+        int roll = RNG.range(0, 440);
+        int cumulative = 0;
+
+        cumulative += 5;   if (roll < cumulative) return new ItemStack(Material.BOOK);
+        cumulative += 8;   if (roll < cumulative) return new ItemStack(Material.IRON_BOOTS);
+        cumulative += 8;   if (roll < cumulative) return makePotion(Material.POTION, org.bukkit.potion.PotionType.FIRE_RESISTANCE);
+        cumulative += 8;   if (roll < cumulative) return makePotion(Material.SPLASH_POTION, org.bukkit.potion.PotionType.FIRE_RESISTANCE);
+        cumulative += 10;  if (roll < cumulative) return makePotion(Material.POTION, org.bukkit.potion.PotionType.WATER);
+        cumulative += 10;  if (roll < cumulative) return new ItemStack(Material.IRON_NUGGET, RNG.range(10, 36));
+        cumulative += 10;  if (roll < cumulative) return new ItemStack(Material.ENDER_PEARL, RNG.range(2, 4));
+        cumulative += 20;  if (roll < cumulative) return new ItemStack(Material.STRING, RNG.range(3, 9));
+        cumulative += 20;  if (roll < cumulative) return new ItemStack(Material.QUARTZ, RNG.range(5, 12));
+        cumulative += 40;  if (roll < cumulative) return new ItemStack(Material.OBSIDIAN);
+        cumulative += 40;  if (roll < cumulative) return new ItemStack(Material.CRYING_OBSIDIAN, RNG.range(1, 3));
+        cumulative += 40;  if (roll < cumulative) return new ItemStack(Material.FIRE_CHARGE);
+        cumulative += 40;  if (roll < cumulative) return new ItemStack(Material.LEATHER, RNG.range(2, 4));
+        cumulative += 40;  if (roll < cumulative) return new ItemStack(Material.SOUL_SAND, RNG.range(2, 8));
+        cumulative += 40;  if (roll < cumulative) return new ItemStack(Material.NETHER_BRICK, RNG.range(2, 8));
+        cumulative += 40;  if (roll < cumulative) return new ItemStack(Material.SPECTRAL_ARROW, RNG.range(6, 12));
+        cumulative += 40;  if (roll < cumulative) return new ItemStack(Material.GRAVEL, RNG.range(8, 16));
+        return new ItemStack(Material.BLACKSTONE, RNG.range(8, 16));
+    }
+
+    private ItemStack makePotion(Material material, org.bukkit.potion.PotionType type) {
+        ItemStack item = new ItemStack(material);
+        org.bukkit.inventory.meta.PotionMeta meta = (org.bukkit.inventory.meta.PotionMeta) item.getItemMeta();
+        if (meta != null) {
+            meta.setBasePotionType(type);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
     @EventHandler(priority = EventPriority.HIGH)

@@ -57,8 +57,8 @@ public class CombatManager {
             for (Arrow arrow : world.getEntitiesByClass(Arrow.class)) {
                 if (arrow.isInBlock() || arrow.isOnGround()) continue;
                 ProjectileSource shooter = arrow.getShooter();
-                if (shooter instanceof Skeleton skeleton) {
-                    Player target = EntityUtil.getNearestPlayer(skeleton, 32);
+                if (shooter instanceof Skeleton || shooter instanceof Illusioner) {
+                    Player target = EntityUtil.getNearestPlayer((Entity) shooter, 32);
                     if (target != null) {
                         Location arrowLoc = arrow.getLocation();
                         Location targetLoc = target.getEyeLocation();

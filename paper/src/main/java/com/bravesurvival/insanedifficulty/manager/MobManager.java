@@ -184,6 +184,15 @@ public class MobManager {
                     }
                 }
             }
+            for (TropicalFish tropical : new java.util.ArrayList<>(world.getEntitiesByClass(TropicalFish.class))) {
+                if (!tropical.hasMetadata("checked") && !tropical.hasMetadata("transformed")) {
+                    tropical.setMetadata("checked", new org.bukkit.metadata.FixedMetadataValue(plugin, true));
+                    if (RNG.chance(config.getFishTransformChance())) {
+                        world.spawnEntity(tropical.getLocation(), EntityType.GUARDIAN);
+                        tropical.remove();
+                    }
+                }
+            }
         }
     }
 

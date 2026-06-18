@@ -226,17 +226,26 @@ public class PlayerManager {
         if (!config.isFallDamageDebuff()) return;
         int level = (int) Math.min(damage / 2, 4); // 每2点伤害一个等级
 
+        // 数据包行为：先清除抗性，再根据等级给抗性+瞬间伤害（模拟致命摔落）
+        player.removePotionEffect(PotionEffectType.RESISTANCE);
+
         if (level >= 1) {
+            EntityUtil.addEffect(player, PotionEffectType.RESISTANCE, 20, 1, true);
+            EntityUtil.addEffect(player, PotionEffectType.INSTANT_DAMAGE, 20, 0, true);
             EntityUtil.addEffect(player, PotionEffectType.SLOWNESS, config.getFallDamageSlownessDuration(), 1);
             EntityUtil.addEffect(player, PotionEffectType.WEAKNESS, config.getFallDamageWeaknessDuration(), 0);
             EntityUtil.addEffect(player, PotionEffectType.BLINDNESS, config.getFallDamageBlindnessDuration(), 0);
         }
         if (level >= 2) {
+            EntityUtil.addEffect(player, PotionEffectType.RESISTANCE, 20, 0, true);
+            EntityUtil.addEffect(player, PotionEffectType.INSTANT_DAMAGE, 20, 1, true);
             EntityUtil.addEffect(player, PotionEffectType.SLOWNESS, 200, 2);
             EntityUtil.addEffect(player, PotionEffectType.BLINDNESS, 100, 0);
             EntityUtil.addEffect(player, PotionEffectType.NAUSEA, 100, 0);
         }
         if (level >= 3) {
+            EntityUtil.addEffect(player, PotionEffectType.RESISTANCE, 20, 1, true);
+            EntityUtil.addEffect(player, PotionEffectType.INSTANT_DAMAGE, 20, 2, true);
             EntityUtil.addEffect(player, PotionEffectType.SLOWNESS, 100, 4);
             EntityUtil.addEffect(player, PotionEffectType.WEAKNESS, 100, 2);
             EntityUtil.addEffect(player, PotionEffectType.NIGHT_VISION, 40, 0);
@@ -244,12 +253,21 @@ public class PlayerManager {
             EntityUtil.addEffect(player, PotionEffectType.NAUSEA, 200, 0);
         }
         if (level >= 4) {
+            EntityUtil.addEffect(player, PotionEffectType.RESISTANCE, 20, 0, true);
+            EntityUtil.addEffect(player, PotionEffectType.INSTANT_DAMAGE, 20, 2, true);
             EntityUtil.addEffect(player, PotionEffectType.SLOWNESS, 60, 10);
             EntityUtil.addEffect(player, PotionEffectType.WEAKNESS, 100, 4);
             EntityUtil.addEffect(player, PotionEffectType.NIGHT_VISION, 100, 0);
             EntityUtil.addEffect(player, PotionEffectType.BLINDNESS, 300, 0);
             EntityUtil.addEffect(player, PotionEffectType.NAUSEA, 240, 0);
         }
+
+        // 2 tick后清除抗性（数据包 behavior: schedule resets 2t 后 clear resistance）
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) {
+                player.removePotionEffect(PotionEffectType.RESISTANCE);
+            }
+        }, 2L);
     }
 
     public void onPlayerDamage(Player player) {

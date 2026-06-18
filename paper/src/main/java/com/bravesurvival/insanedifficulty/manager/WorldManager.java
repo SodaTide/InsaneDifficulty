@@ -223,7 +223,8 @@ public class WorldManager {
             if (below.getType() == Material.BUBBLE_COLUMN) {
                 org.bukkit.block.data.type.BubbleColumn bubble = (org.bukkit.block.data.type.BubbleColumn) below.getBlockData();
                 if (bubble.isDrag()) {
-                    player.setVelocity(player.getVelocity().add(new Vector(0, -0.5, 0)));
+                    // 数据包行为：直接传送下沉（而非添加速度）
+                    player.teleport(player.getLocation().add(0, -0.5, 0));
                 }
             }
         }
