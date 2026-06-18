@@ -42,7 +42,8 @@
       "enhanced_enchantments": true,
       "auto_aim": true,
       "power_bow": true,
-      "netherite_helmet": true
+      "netherite_helmet": true,
+      "stray_slowness": true
     },
     "spider": {
       "enabled": true,
@@ -112,6 +113,7 @@
       "enabled": true,
       "wither_skulls": true,
       "splash_potions": true,
+      "splash_potions_on_damage": true,
       "spawn_with_wither_skeletons": true
     },
     "illusioner": {
