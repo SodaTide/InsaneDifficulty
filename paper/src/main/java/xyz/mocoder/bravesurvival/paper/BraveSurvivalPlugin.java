@@ -478,24 +478,35 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
 
     // ==================== 受伤掉落物品 ====================
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onEntityDamageForItemDrop(EntityDamageEvent event) {
         if (event.isCancelled()) return;
 
-        if (event.getEntity() instanceof Player player) {
-            if (ConfigManager.getPlayerConfig().has("drop_items_on_hit") &&
-                ConfigManager.getPlayerConfig().get("drop_items_on_hit").getAsBoolean()) {
-                double chance = ConfigManager.getPlayerConfig().has("drop_items_on_hit_chance") ?
-                    ConfigManager.getPlayerConfig().get("drop_items_on_hit_chance").getAsDouble() : 0.5;
-                int count = ConfigManager.getPlayerConfig().has("drop_items_on_hit_count") ?
-                    ConfigManager.getPlayerConfig().get("drop_items_on_hit_count").getAsInt() : 4;
+        if (!(event.getEntity() instanceof Player player)) return;
+        
+        // 创造模式和旁观者模式不触发
+        if (player.getGameMode() == org.bukkit.GameMode.CREATIVE || 
+            player.getGameMode() == org.bukkit.GameMode.SPECTATOR) return;
+        
+        // 忽略自然恢复和经验获取等伤害来源（根据数据包逻辑，只处理普通伤害）
+        if (event.getCause() == EntityDamageEvent.DamageCause.VOID ||
+            event.getCause() == EntityDamageEvent.DamageCause.WITHER ||
+            event.getCause() == EntityDamageEvent.DamageCause.STARVATION) return;
 
-                // 数据包逻辑：4次50%概率，随机选择槽位(0-40)
-                for (int i = 0; i < count; i++) {
-                    if (random.nextDouble() < chance) {
-                        dropRandomItem(player);
-                    }
-                }
+        if (!ConfigManager.getPlayerConfig().has("drop_items_on_hit") ||
+            !ConfigManager.getPlayerConfig().get("drop_items_on_hit").getAsBoolean()) {
+            return;
+        }
+        
+        double chance = ConfigManager.getPlayerConfig().has("drop_items_on_hit_chance") ?
+            ConfigManager.getPlayerConfig().get("drop_items_on_hit_chance").getAsDouble() : 0.5;
+        int count = ConfigManager.getPlayerConfig().has("drop_items_on_hit_count") ?
+            ConfigManager.getPlayerConfig().get("drop_items_on_hit_count").getAsInt() : 4;
+
+        // 数据包逻辑：4次50%概率，随机选择槽位(0-40)
+        for (int i = 0; i < count; i++) {
+            if (random.nextDouble() < chance) {
+                dropRandomItem(player);
             }
         }
     }
@@ -914,24 +925,77 @@ public class BraveSurvivalPlugin extends JavaPlugin implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerDeathForZombie(PlayerDeathEvent event) {
         Player player = event.getEntity();
-
-        if (ConfigManager.getPlayerConfig().has("death_spawn_zombie") &&
-            ConfigManager.getPlayerConfig().get("death_spawn_zombie").getAsBoolean()) {
-            double chance = ConfigManager.getPlayerConfig().has("death_spawn_zombie_chance") ?
-                ConfigManager.getPlayerConfig().get("death_spawn_zombie_chance").getAsDouble() : 0.5;
-            if (Math.random() < chance) {
-                Zombie zombie = player.getWorld().spawn(player.getLocation(), Zombie.class);
-                zombie.setCustomName("§c§l死亡僵尸");
-                zombie.setCustomNameVisible(true);
-                PaperEntityWrapper wrapper = new PaperEntityWrapper(zombie);
-                wrapper.setMaxHealth(50.0);
-                wrapper.setAttackDamage(10.0);
-                wrapper.setMovementSpeed(0.3);
-
-                if (ConfigManager.getPlayerConfig().has("death_spawn_zombie_leather_helmet") &&
-                    ConfigManager.getPlayerConfig().get("death_spawn_zombie_leather_helmet").getAsBoolean()) {
-                    zombie.getEquipment().setHelmet(new ItemStack(Material.LEATHER_HELMET));
+        
+        // 检查配置是否启用
+        if (!ConfigManager.getPlayerConfig().has("death_spawn_zombie") ||
+            !ConfigManager.getPlayerConfig().get("death_spawn_zombie").getAsBoolean()) {
+            return;
+        }
+        
+        double chance = ConfigManager.getPlayerConfig().has("death_spawn_zombie_chance") ?
+            ConfigManager.getPlayerConfig().get("death_spawn_zombie_chance").getAsDouble() : 0.5;
+        
+        // 数据包逻辑: 50%概率生成
+        if (Math.random() >= chance) {
+            return;
+        }
+        
+        Location loc = player.getLocation();
+        World world = loc.getWorld();
+        
+        // 数据包去重逻辑: 4格内不能有同名Grave Zombie
+        boolean hasNearbyGraveZombie = false;
+        for (Entity entity : world.getNearbyEntities(loc, 4, 4, 4)) {
+            if ((entity instanceof Zombie || entity instanceof Drowned) && 
+                "Grave Zombie".equals(entity.getCustomName())) {
+                hasNearbyGraveZombie = true;
+                break;
+            }
+        }
+        if (hasNearbyGraveZombie) return;
+        
+        // 数据包逻辑: 水中生成溺尸带三叉戟, 陆地上生成僵尸
+        if (player.isUnderWater() || loc.getBlock().getType().name().contains("WATER")) {
+            // 水中生成溺尸
+            Drowned drowned = world.spawn(loc, Drowned.class);
+            drowned.setCustomName("Grave Zombie");
+            drowned.setCustomNameVisible(false);
+            
+            // 设置三叉戟
+            ItemStack trident = new ItemStack(Material.TRIDENT);
+            drowned.getEquipment().setItemInMainHand(trident);
+            drowned.getEquipment().setItemInMainHandDropChance(0.085f);
+            
+            // 设置属性
+            PaperEntityWrapper wrapper = new PaperEntityWrapper(drowned);
+            wrapper.setMaxHealth(40.0);
+            wrapper.setAttackDamage(8.0);
+            wrapper.setMovementSpeed(0.3);
+        } else {
+            // 陆地上生成僵尸
+            Zombie zombie = world.spawn(loc, Zombie.class);
+            zombie.setCustomName("Grave Zombie");
+            zombie.setCustomNameVisible(false);
+            
+            // 设置属性 - 与数据包一致: 5攻击, 0.4速度, 0.5击退抗性
+            PaperEntityWrapper wrapper = new PaperEntityWrapper(zombie);
+            wrapper.setMaxHealth(20.0);
+            wrapper.setAttackDamage(5.0);
+            wrapper.setMovementSpeed(0.4);
+            wrapper.setKnockbackResistance(0.5);
+            
+            // 设置皮革头盔 (如果配置启用)
+            if (ConfigManager.getPlayerConfig().has("death_spawn_zombie_leather_helmet") &&
+                ConfigManager.getPlayerConfig().get("death_spawn_zombie_leather_helmet").getAsBoolean()) {
+                ItemStack helmet = new ItemStack(Material.LEATHER_HELMET);
+                // 设置unbreakable
+                org.bukkit.inventory.meta.ItemMeta meta = helmet.getItemMeta();
+                if (meta != null) {
+                    meta.setUnbreakable(true);
+                    helmet.setItemMeta(meta);
                 }
+                zombie.getEquipment().setHelmet(helmet);
+                zombie.getEquipment().setHelmetDropChance(0.085f);
             }
         }
     }

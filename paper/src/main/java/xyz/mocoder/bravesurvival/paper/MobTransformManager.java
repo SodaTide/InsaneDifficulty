@@ -60,7 +60,10 @@ public class MobTransformManager implements Listener {
                         } else if (entity instanceof Pig pig) {
                             transformEntity(pig, Hoglin.class, playerLoc);
                         } else if (entity instanceof Chicken chicken) {
-                            transformToJockey(chicken, playerLoc);
+                            // 检查鸡是否已经是jockey（避免重复生成骷髅）
+                            if (!chicken.isInsideVehicle() && chicken.getPassengers().isEmpty()) {
+                                transformToJockey(chicken, playerLoc);
+                            }
                         } else if (entity instanceof Dolphin dolphin) {
                             if (player.getLocation().distance(dolphin.getLocation()) <= 10) {
                                 transformEntity(dolphin, Cod.class, playerLoc);
